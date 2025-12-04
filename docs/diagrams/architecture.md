@@ -71,26 +71,47 @@ graph TB
 | **Infrastructure** | Detalles técnicos | `DoctrineMiniaturaRepository` |
 | **Presentation** | Entrada/salida HTTP | `MiniaturaController` |
 
-## Estructura de carpetas Backend
-```mermaid
-graph LR
-    subgraph src["📁 src/"]
-        subgraph domain["💎 Domain/"]
-            D1["Entity/"]
-            D2["Repository/"]
-            D3["ValueObject/"]
-        end
-        
-        subgraph app["⚙️ Application/"]
-            A1["UseCase/"]
-        end
-        
-        subgraph infra["🔧 Infrastructure/"]
-            I1["Persistence/"]
-            I2["Controller/"]
-            I3["Security/"]
-        end
-    end
+## Estructura de carpetas
+```
+src/
+├── Domain/
+│   ├── Entity/
+│   │   ├── Miniatura.php
+│   │   ├── Unidad.php
+│   │   ├── Proyecto.php
+│   │   └── Planificacion.php
+│   ├── Repository/
+│   │   ├── MiniaturaRepositoryInterface.php
+│   │   ├── UnidadRepositoryInterface.php
+│   │   ├── ProyectoRepositoryInterface.php
+│   │   └── PlanificacionRepositoryInterface.php
+│   └── ValueObject/
+│       ├── Email.php
+│       └── NivelDetalle.php
+│
+├── Application/
+│   └── UseCase/
+│       ├── Miniatura/
+│       │   ├── CreateMiniaturaUseCase.php
+│       │   ├── UpdateMiniaturaUseCase.php
+│       │   └── DeleteMiniaturaUseCase.php
+│       ├── Unidad/
+│       ├── Proyecto/
+│       └── Planificacion/
+│
+└── Infrastructure/
+    ├── Persistence/
+    │   └── Doctrine/
+    │       ├── DoctrineMiniaturaRepository.php
+    │       ├── DoctrineUnidadRepository.php
+    │       ├── DoctrineProyectoRepository.php
+    │       └── DoctrinePlanificacionRepository.php
+    └── Controller/
+        └── Api/
+            ├── MiniaturaController.php
+            ├── UnidadController.php
+            ├── ProyectoController.php
+            └── PlanificacionController.php
 ```
 
 ## Flujo de una petición
