@@ -1,0 +1,83 @@
+services:
+  # Base de datos MySQL
+  db:
+    image: mysql:8.0
+    container_name: hobbyplanner-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: hobbyplanner
+      MYSQL_USER: hobbyplanner
+      MYSQL_PASSWORD: hobbyplanner
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - hobbyplanner
+
+  # Backend Symfony
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: hobbyplanner-php
+    volumes:
+      - ./backend:/srv/app
+    working_dir: /srv/app
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: dev
+      DATABASE_URL: mysql://hobbyplanner:hobbyplanner@db:3306/hobbyplanner
+    depends_on:
+      - db
+    networks:
+      - hobbyplanner
+
+  # Frontend Vue
+  vue:
+    build:
+      context: .
+      dockerfile: docker/vue/Dockerfile
+    container_name: hobbyplanner-vue
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    stdin_open: true
+    tty: true
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - php
+    command: ["npm", "run", "dev", "--", "--host"]
+    networks:
+      - hobbyplanner
+
+  # Nginx (para producción / proxy)
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    container_name: hobbyplanner-nginx
+    volumes:
+      - ./backend:/srv/app
+    ports:
+      - "80:80"
+    depends_on:
+      - php
+      - vue
+    networks:
+      - hobbyplanner
+
+volumes:
+  db-data:
+
+networks:
+  hobbyplanner:
+    driver: bridge
