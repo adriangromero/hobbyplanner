@@ -10,6 +10,10 @@ erDiagram
     PROYECTO }|--|{ MINIATURA : "contiene"
     PROYECTO }|--|{ UNIDAD : "contiene"
     UNIDAD }|--|{ MINIATURA : "agrupa"
+    
+    PROYECTO ||--o{ PLANIFICACION : "tiene"
+    PLANIFICACION }o--o| MINIATURA : "planifica"
+    PLANIFICACION }o--o| UNIDAD : "planifica"
 
     USUARIO {
         int id PK
@@ -38,6 +42,7 @@ erDiagram
         string faccion
         int cantidad
         string estado
+        string nivel_detalle
         float horas_estimadas
         float horas_reales
         datetime fecha_creacion
@@ -55,6 +60,17 @@ erDiagram
         datetime fecha_creacion
         datetime fecha_deadline
     }
+
+    PLANIFICACION {
+        int id PK
+        int proyecto_id FK
+        int miniatura_id FK
+        int unidad_id FK
+        string nombre
+        datetime fecha_inicio
+        datetime fecha_fin
+        int orden
+    }
 ```
 
 ## Relaciones
@@ -64,11 +80,14 @@ erDiagram
 | Usuario → Proyecto | 1:N | Un usuario tiene muchos proyectos |
 | Usuario → Miniatura | 1:N | Un usuario tiene muchas miniaturas |
 | Usuario → Unidad | 1:N | Un usuario tiene muchas unidades |
-| Proyecto ↔ Miniatura | N:M | Un proyecto puede tener varias minis y viceversa |
-| Proyecto ↔ Unidad | N:M | Un proyecto puede tener varias unidades y viceversa |
-| Unidad ↔ Miniatura | N:M | Una unidad agrupa varias minis y una mini puede estar en varias unidades |
+| Proyecto ↔ Miniatura | N:M | Proyectos contienen miniaturas |
+| Proyecto ↔ Unidad | N:M | Proyectos contienen unidades |
+| Unidad ↔ Miniatura | N:M | Unidades agrupan miniaturas |
+| Proyecto → Planificación | 1:N | Un proyecto tiene varias planificaciones |
+| Planificación → Miniatura | N:1 | Una planificación puede referenciar una miniatura (opcional) |
+| Planificación → Unidad | N:1 | Una planificación puede referenciar una unidad (opcional) |
 
-## Estados posibles
+## Estados
 
 **Miniatura / Unidad:**
 - `PENDIENTE` - Sin empezar
@@ -80,8 +99,18 @@ erDiagram
 - `EN_PROGRESO` - Trabajando
 - `COMPLETADO` - Finalizado
 
-## Niveles de detalle (Miniatura)
+## Niveles de detalle
 
 - `BASICO` - Imprimación + colores base
 - `TABLETOP` - Listo para jugar
 - `EXPOSICION` - Máximo detalle
+
+## Campos opcionales
+
+| Entidad | Campo | ¿Opcional? |
+|---------|-------|------------|
+| Planificación | miniatura_id | ✅ Sí |
+| Planificación | unidad_id | ✅ Sí |
+| Planificación | fecha_inicio | ✅ Sí |
+| Planificación | fecha_fin | ✅ Sí |
+| Proyecto | fecha_deadline | ✅ Sí |
