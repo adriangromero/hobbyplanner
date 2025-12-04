@@ -2,7 +2,7 @@
 
 # 🎨 HobbyPlanner
 
-**Gestión profesional de proyectos de pintura de miniaturas Warhammer**
+**Gestión profesional de proyectos del hobby.**
 
 [![Backend Tests](https://github.com/TU-USUARIO/hobbyplanner/workflows/Backend%20CI/badge.svg)](https://github.com/TU-USUARIO/hobbyplanner/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
