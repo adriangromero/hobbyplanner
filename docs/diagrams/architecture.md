@@ -17,6 +17,7 @@ graph TB
         UC_MINI[Miniatura UseCases]
         UC_UNIDAD[Unidad UseCases]
         UC_PROY[Proyecto UseCases]
+        UC_PLAN[Planificacion UseCases]
     end
 
     subgraph Domain["💎 DOMAIN LAYER - Núcleo"]
@@ -35,16 +36,19 @@ graph TB
     CTRL --> UC_MINI
     CTRL --> UC_UNIDAD
     CTRL --> UC_PROY
+    CTRL --> UC_PLAN
     
     UC_AUTH --> ENT
     UC_MINI --> ENT
     UC_UNIDAD --> ENT
     UC_PROY --> ENT
+    UC_PLAN --> ENT
     
     UC_AUTH --> REPO_INT
     UC_MINI --> REPO_INT
     UC_UNIDAD --> REPO_INT
     UC_PROY --> REPO_INT
+    UC_PLAN --> REPO_INT
     
     ENT --> VO
     
@@ -62,9 +66,9 @@ graph TB
 
 | Capa | Responsabilidad | Ejemplo |
 |------|-----------------|---------|
-| **Domain** | Lógica de negocio pura, sin dependencias | `Miniatura`, `Proyecto`, `Email` (VO) |
-| **Application** | Casos de uso, orquesta el dominio | `CreateMiniaturaUseCase` |
-| **Infrastructure** | Detalles técnicos, implementaciones | `DoctrineMiniaturaRepository` |
+| **Domain** | Lógica de negocio pura | `Miniatura`, `Proyecto`, `Planificacion` |
+| **Application** | Casos de uso | `CreateMiniaturaUseCase` |
+| **Infrastructure** | Detalles técnicos | `DoctrineMiniaturaRepository` |
 | **Presentation** | Entrada/salida HTTP | `MiniaturaController` |
 
 ## Estructura de carpetas Backend
@@ -134,5 +138,3 @@ sequenceDiagram
         │  Presentation   │  ← Depende de Application
         └─────────────────┘
 ```
-
-**La clave:** El dominio es el núcleo y no conoce nada del exterior (ni base de datos, ni framework, ni HTTP).
