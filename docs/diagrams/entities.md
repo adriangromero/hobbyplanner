@@ -84,8 +84,8 @@ erDiagram
 | Proyecto ↔ Unidad | N:M | Proyectos contienen unidades |
 | Unidad ↔ Miniatura | N:M | Unidades agrupan miniaturas |
 | Proyecto → Planificación | 1:N | Un proyecto tiene varias planificaciones |
-| Planificación → Miniatura | N:1 | Una planificación puede referenciar una miniatura (opcional) |
-| Planificación → Unidad | N:1 | Una planificación puede referenciar una unidad (opcional) |
+| Planificación → Miniatura | N:1 | Opcional |
+| Planificación → Unidad | N:1 | Opcional |
 
 ## Estados
 
