@@ -1,82 +1,115 @@
 services:
-  # Base de datos MySQL
+  # ===========================================
+  # BASE DE DATOS
+  # ===========================================
   db:
     image: mysql:8.0
     container_name: hobbyplanner-db
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: hobbyplanner
-      MYSQL_USER: hobbyplanner
-      MYSQL_PASSWORD: hobbyplanner
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
       - "3306:3306"
     volumes:
       - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - hobbyplanner
 
-  # Backend Symfony
+  # ===========================================
+  # PHPMYADMIN - INTERFAZ WEB PARA LA BASE DE DATOS
+  # ===========================================
+  phpmyadmin:
+      image: phpmyadmin:latest
+      container_name: hobbyplanner-phpmyadmin
+      restart: unless-stopped
+      ports:
+        - "8080:80"
+      environment:
+        PMA_HOST: db
+        PMA_USER: ${DB_USER:-hobbyplanner}
+        PMA_PASSWORD: ${DB_PASSWORD:-hobbyplanner}
+      depends_on:
+        - db
+      networks:
+        - hobbyplanner
+
+  # ===========================================
+  # BACKEND - PHP-FPM
+  # ===========================================
   php:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+      target: development
     container_name: hobbyplanner-php
+    restart: unless-stopped
     volumes:
-      - ./backend:/srv/app
-    working_dir: /srv/app
-    ports:
-      - "8000:8000"
+      - ./backend:/srv/app:cached
+      - composer-cache:/root/.composer/cache
+      - php-var:/srv/app/var  # ← Añade esto
     environment:
-      APP_ENV: dev
-      DATABASE_URL: mysql://hobbyplanner:hobbyplanner@db:3306/hobbyplanner
+      APP_ENV: ${APP_ENV:-dev}
+      APP_DEBUG: ${APP_DEBUG:-1}
+      DATABASE_URL: mysql://${DB_USER:-hobbyplanner}:${DB_PASSWORD:-hobbyplanner}@db:3306/${DB_NAME:-hobbyplanner}?serverVersion=8.0
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - hobbyplanner
 
-  # Frontend Vue
-  vue:
-    build:
-      context: .
-      dockerfile: docker/vue/Dockerfile
-    container_name: hobbyplanner-vue
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    ports:
-      - "5173:5173"
-    stdin_open: true
-    tty: true
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-      - NODE_ENV=development
-      - WATCHPACK_POLLING=true
-      - VITE_API_URL=http://localhost:8000
-    depends_on:
-      - php
-    command: ["npm", "run", "dev", "--", "--host"]
-    networks:
-      - hobbyplanner
-
-  # Nginx (para producción / proxy)
+  # ===========================================
+  # NGINX - SERVIDOR WEB
+  # ===========================================
   nginx:
     build:
       context: .
       dockerfile: docker/nginx/Dockerfile
     container_name: hobbyplanner-nginx
-    volumes:
-      - ./backend:/srv/app
+    restart: unless-stopped
     ports:
       - "80:80"
+    volumes:
+      - ./backend:/srv/app:cached
     depends_on:
       - php
-      - vue
+    networks:
+      - hobbyplanner
+
+  # ===========================================
+  # FRONTEND - VUE.JS
+  # ===========================================
+  vue:
+    build:
+      context: .
+      dockerfile: docker/vue/Dockerfile
+      target: development
+    container_name: hobbyplanner-vue
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app:cached
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      VITE_API_URL: ${VITE_API_URL}
+    depends_on:
+      - nginx
     networks:
       - hobbyplanner
 
 volumes:
   db-data:
+  composer-cache:
+  php-var:  # ← Añade esto
 
 networks:
   hobbyplanner:
