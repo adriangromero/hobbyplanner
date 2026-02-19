@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                  https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="App\Domain\Entity\WorkSession" table="work_sessions">
+
+        <id name="id" type="work_session_id" column="id" length="36">
+            <generator strategy="NONE"/>
+        </id>
+
+        <field name="userId" type="user_id" column="user_id" length="36"/>
+        <field name="projectId" type="project_id" column="project_id" length="36"/>
+        <field name="itemId" type="item_id" column="item_id" length="36"/>
+
+        <field name="startedAt" type="datetime_immutable" column="started_at"/>
+        <field name="endedAt" type="datetime_immutable" column="ended_at" nullable="true"/>
+
+        <indexes>
+            <index name="idx_user_id" columns="user_id"/>
+            <index name="idx_project_id" columns="project_id"/>
+            <index name="idx_item_id" columns="item_id"/>
+        </indexes>
+
+    </entity>
+
+
+</doctrine-mapping>
