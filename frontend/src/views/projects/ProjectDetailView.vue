@@ -16,6 +16,9 @@
 
       <h2 class="text-xl font-semibold mb-3">Items</h2>
 
+      <!-- ⭐ AQUI AÑADIMOS LA TARJETA DE ESTIMACIÓN -->
+      <ProjectEstimationCard class="mb-6" />
+
       <ItemsTable :items="items" />
     </div>
 
@@ -31,6 +34,7 @@ import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProjectStore } from '@/stores/projectStore'
 import ItemsTable from '@/components/items/ItemsTable.vue'
+import ProjectEstimationCard from '@/components/projects/ProjectEstimationCard.vue'
 
 const store = useProjectStore()
 const route = useRoute()

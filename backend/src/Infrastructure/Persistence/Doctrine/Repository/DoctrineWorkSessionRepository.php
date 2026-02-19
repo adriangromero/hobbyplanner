@@ -50,7 +50,7 @@ class DoctrineWorkSessionRepository extends ServiceEntityRepository implements W
         return $this->createQueryBuilder('ws')
             ->where('ws.itemId = :itemId')
             ->setParameter('itemId', $itemId->value())
-            ->orderBy('ws.workedAt', 'DESC')
+            ->orderBy('ws.startedAt', 'DESC')
             ->getQuery()
             ->getResult();
     }
@@ -60,7 +60,7 @@ class DoctrineWorkSessionRepository extends ServiceEntityRepository implements W
         return $this->createQueryBuilder('ws')
             ->where('ws.projectId = :projectId')
             ->setParameter('projectId', $projectId->value())
-            ->orderBy('ws.workedAt', 'DESC')
+            ->orderBy('ws.startedAt', 'DESC')
             ->getQuery()
             ->getResult();
     }
@@ -70,7 +70,7 @@ class DoctrineWorkSessionRepository extends ServiceEntityRepository implements W
         return $this->createQueryBuilder('ws')
             ->where('ws.userId = :userId')
             ->setParameter('userId', $userId->value())
-            ->orderBy('ws.workedAt', 'DESC')
+            ->orderBy('ws.startedAt', 'DESC')
             ->getQuery()
             ->getResult();
     }
@@ -89,15 +89,25 @@ class DoctrineWorkSessionRepository extends ServiceEntityRepository implements W
 
     public function getTotalHoursByProject(ProjectId $projectId): float
     {
-        $result = $this->createQueryBuilder('ws')
-            ->select('SUM(ws.hours) as total')
+        $sessions = $this->createQueryBuilder('ws')
             ->where('ws.projectId = :projectId')
+            ->andWhere('ws.endedAt IS NOT NULL')
             ->setParameter('projectId', $projectId->value())
             ->getQuery()
-            ->getSingleScalarResult();
+            ->getResult();
 
-        return (float) ($result ?? 0);
+        $totalSeconds = 0;
+
+        foreach ($sessions as $ws) {
+            $start = $ws->startedAt()->getTimestamp();
+            $end   = $ws->endedAt()->getTimestamp();
+
+            $totalSeconds += ($end - $start);
+        }
+
+        return $totalSeconds / 3600; // horas
     }
+
 
     public function getTotalHoursByUser(UserId $userId): float
     {
@@ -124,9 +134,9 @@ class DoctrineWorkSessionRepository extends ServiceEntityRepository implements W
     public function getHoursByDay(ProjectId $projectId, \DateTimeImmutable $since): array
     {
         $results = $this->createQueryBuilder('ws')
-            ->select('DATE(ws.workedAt) as day', 'SUM(ws.hours) as hours')
+            ->select('DATE(ws.startedAt) as day', 'SUM(ws.hours) as hours')
             ->where('ws.projectId = :projectId')
-            ->andWhere('ws.workedAt >= :since')
+            ->andWhere('ws.startedAt >= :since')
             ->setParameter('projectId', $projectId->value())
             ->setParameter('since', $since)
             ->groupBy('day')

@@ -50,6 +50,18 @@ final class DoctrineItemRepository extends ServiceEntityRepository implements It
             ->getQuery()
             ->getOneOrNullResult();
     }
+    
+    public function sumEstimatedByProject(ProjectId $projectId): float
+    {
+        $result = $this->createQueryBuilder('i')
+            ->select('SUM(i.estimatedHours)')
+            ->where('i.projectId = :projectId')
+            ->setParameter('projectId', $projectId->value())
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (float) ($result ?? 0);
+    }
 
     public function findByProject(ProjectId $id): array
     {

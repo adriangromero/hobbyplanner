@@ -32,8 +32,6 @@ final class WorkSessionController
                 'projectId' => $ws->projectId()->value(),
                 'itemId' => $ws->itemId()->value(),
                 'userId' => $ws->userId()->value(),
-                'startedAt' => $ws->startedAt()->format('Y-m-d H:i:s'),
-                'endedAt' => $ws->endedAt()?->format('Y-m-d H:i:s'),
             ], $response->workSessions())
         ]);
     }

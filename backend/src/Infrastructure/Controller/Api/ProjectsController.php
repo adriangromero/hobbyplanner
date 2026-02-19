@@ -32,20 +32,13 @@ final class ProjectsController
     }
 
     #[Route('/{id}/estimation', methods: ['GET'])]
-    public function estimation(string $id, GetProjectEstimationUseCase $estimationUseCase): JsonResponse
+    public function estimation(string $id, GetProjectEstimationUseCase $useCase): JsonResponse
     {
-        $projectIdVO = ProjectId::fromString($id);
+        $projectId = ProjectId::fromString($id);
 
-        $response = $estimationUseCase->execute($projectIdVO);
+        $estimation = $useCase->execute($projectId);
 
-        return new JsonResponse([
-            'workedHours' => $response->workedHours,
-            'estimatedHours' => $response->estimatedHours,
-            'remainingHours' => $response->remainingHours,
-            'velocityPerDay' => round($response->velocityPerDay, 2),
-            'daysRemaining' => $response->daysRemaining,
-            'estimatedCompletionDate' => $response->estimatedCompletionDate
-        ]);
+        return new JsonResponse($estimation->toArray());
     }
 
     #[Route('/{id}', methods: ['GET'])]
@@ -68,7 +61,7 @@ final class ProjectsController
             'sessions' => array_map(fn($s) => [
                 'id' => $s->id()->value(),
                 'itemId' => $s->itemId()->value(),
-                'createdAt' => $s->createdAt()->format('c'),
+                'createdAt' => $s->startedAt()->format('c'),
             ], $response->sessions())
         ]);
     }
