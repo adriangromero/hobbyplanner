@@ -4,6 +4,8 @@
       <tr>
         <th class="p-3">Name</th>
         <th class="p-3">Estimated Hours</th>
+        <th class="p-3">Total Sessions</th>
+        <th class="p-3">Hours worked</th>
       </tr>
     </thead>
 

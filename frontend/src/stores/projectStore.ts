@@ -1,18 +1,19 @@
 import { defineStore } from 'pinia'
+import api from '@/api/axios'
+
+type Session = {
+  id: string
+  startedAt: string
+  endedAt: string | null
+  durationHours: number
+}
 
 type Item = {
   id: string
   name: string
   estimatedHours: number
-  workedHours: number
-}
-
-type Session = {
-  id: string
-  itemId: string
-  projectId: string
-  duration: number
-  createdAt: string
+  totalSessions: number
+  sessions: Session[]
 }
 
 type Project = {
@@ -34,52 +35,48 @@ type Estimation = {
 
 export const useProjectStore = defineStore('project', {
   state: () => ({
-    loading: false,
-    projects: [] as Project[],
+    loading:        false,
+    error:          null as string | null,
+    projects:       [] as Project[],
     currentProject: null as Project | null,
-    items: [] as Item[],
-    sessions: [] as Session[],
-    estimation: null as Estimation | null
+    items:          [] as Item[],
+    estimation:     null as Estimation | null,
   }),
 
   actions: {
     async loadProjects() {
       this.loading = true
-      const res = await fetch('http://localhost/projects')
-      const data = await res.json()
-      this.projects = data.projects
-      this.loading = false
+      this.error   = null
+
+      try {
+        const { data } = await api.get('/projects')
+        this.projects = data.projects
+      } catch (e: any) {
+        this.error = e.response?.data?.error ?? 'Error al cargar proyectos'
+      } finally {
+        this.loading = false
+      }
     },
 
     async loadProject(id: string) {
       this.loading = true
-      const res = await fetch(`http://localhost/projects/${id}`)
-      const data = await res.json()
+      this.error   = null
 
-      this.currentProject = data.project
-      this.items = data.items
-      this.sessions = data.sessions
+      try {
+        const [projectRes, estimationRes] = await Promise.all([
+          api.get(`/projects/${id}`),
+          api.get(`/projects/${id}/estimation`),
+        ])
 
-      // cargar estimación en paralelo
-      const estRes = await fetch(`http://localhost/projects/${id}/estimation`)
-      this.estimation = await estRes.json()
+        this.currentProject = projectRes.data.project
+        this.items          = projectRes.data.items
+        this.estimation     = estimationRes.data
 
-      this.loading = false
-    },
-
-    addSession(payload: { itemId: string; projectId: string; duration: number }) {
-      this.sessions.push({
-        id: crypto.randomUUID(),
-        itemId: payload.itemId,
-        projectId: payload.projectId,
-        duration: payload.duration,
-        createdAt: new Date().toISOString()
-      })
-
-      const item = this.items.find(i => i.id === payload.itemId)
-      if (item) {
-        item.workedHours += payload.duration / 3600
+      } catch (e: any) {
+        this.error = e.response?.data?.error ?? 'Error al cargar proyecto'
+      } finally {
+        this.loading = false
       }
-    }
+    },
   }
 })

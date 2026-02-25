@@ -14,13 +14,25 @@ security:
       pattern: ^/(_(profiler|wdt)|css|images|js)/
       security: false
 
-    main:
-      lazy: true
-      provider: app_user_provider
-      security: false   # 🔥 TODA LA API ABIERTA
+    login:
+      pattern: ^/api/auth/login
+      stateless: true
+      json_login:
+        check_path: /api/auth/login
+        username_path: email
+        password_path: password
+        success_handler: lexik_jwt_authentication.handler.authentication_success
+        failure_handler: lexik_jwt_authentication.handler.authentication_failure
+
+    api:
+      pattern: ^/api
+      stateless: true
+      jwt: ~
 
   access_control:
-    - { path: ^/api, roles: PUBLIC_ACCESS }  # 🔥 TODA LA API ABIERTA
+    - { path: ^/api/auth/login, roles: PUBLIC_ACCESS }
+    - { path: ^/api/auth/register, roles: PUBLIC_ACCESS }
+    - { path: ^/api, roles: ROLE_USER }
 
 when@test:
   security:

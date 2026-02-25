@@ -38,7 +38,7 @@ final class WorkSessionId
         return $this->value;
     }
 
-    public function equals(ItemId $other): bool
+    public function equals(WorkSessionId $other): bool
     {
         return $this->value === $other->value();
     }

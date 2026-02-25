@@ -4,28 +4,37 @@ declare(strict_types=1);
 
 namespace App\Application\UseCase\Project\GetProjectEstimation;
 
+use App\Application\DTO\ProjectEstimationDTO;
 use App\Domain\Repository\ItemRepositoryInterface;
 use App\Domain\Repository\ProjectRepositoryInterface;
 use App\Domain\Repository\WorkSessionRepositoryInterface;
 use App\Domain\Service\ProjectEstimator;
-use App\Domain\ValueObject\ProjectEstimation;
-use App\Domain\ValueObject\ProjectId;
 
-final readonly class GetProjectEstimationUseCase
+final class GetProjectEstimationUseCase
 {
     public function __construct(
-        private ItemRepositoryInterface $itemRepository,
-        private ProjectRepositoryInterface $projectRepository,
-        private WorkSessionRepositoryInterface $workSessionRepository,
-        private ProjectEstimator $estimator
+        private readonly ProjectRepositoryInterface     $projectRepository,
+        private readonly ItemRepositoryInterface        $itemRepository,
+        private readonly WorkSessionRepositoryInterface $workSessionRepository,
+        private readonly ProjectEstimator               $estimator,
     ) {}
 
-    public function execute(ProjectId $projectId): ProjectEstimation
+    public function execute(GetProjectEstimationRequest $request): GetProjectEstimationResponse
     {
-        $items = $this->itemRepository->findByProject($projectId);
-        $sessions = $this->workSessionRepository->findByProject($projectId);
-        $project = $this->projectRepository->findById($projectId);
+        $projectId = $request->projectId();
 
-        return $this->estimator->estimate($project->createdAt(), $items, $sessions );
+        $project  = $this->projectRepository->findById($projectId);
+        $items    = $this->itemRepository->findByProject($projectId);
+        $sessions = $this->workSessionRepository->findByProject($projectId);
+
+        $estimation = $this->estimator->estimate(
+            $project->createdAt(),
+            $items,
+            $sessions
+        );
+
+        return new GetProjectEstimationResponse(
+            ProjectEstimationDTO::fromValueObject($estimation)
+        );
     }
 }

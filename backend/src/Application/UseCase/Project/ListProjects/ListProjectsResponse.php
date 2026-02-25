@@ -4,24 +4,16 @@ declare(strict_types=1);
 
 namespace App\Application\UseCase\Project\ListProjects;
 
-use App\Domain\Entity\Project;
+use App\Application\DTO\ProjectDTO;
 
 final class ListProjectsResponse
 {
-    /** @var Project[] */
-    private array $projects;
+    /** @param ProjectDTO[] $projects */
+    public function __construct(
+        private readonly array $projects
+    ) {}
 
-    /**
-     * @param Project[] $projects
-     */
-    public function __construct(array $projects)
-    {
-        $this->projects = $projects;
-    }
-
-    /**
-     * @return Project[]
-     */
+    /** @return ProjectDTO[] */
     public function projects(): array
     {
         return $this->projects;

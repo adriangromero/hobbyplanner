@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\Application\UseCase\Project\GetProjectFull;
+namespace App\Application\UseCase\Project\GetProjectEstimation;
 
 use App\Domain\ValueObject\ProjectId;
 
-final class GetProjectFullRequest
+final class GetProjectEstimationRequest
 {
     public function __construct(
-        private string $projectId
+        private readonly string $projectId
     ) {}
 
     public function projectId(): ProjectId

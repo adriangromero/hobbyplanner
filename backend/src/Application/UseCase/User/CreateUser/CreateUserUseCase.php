@@ -13,42 +13,30 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 final class CreateUserUseCase
 {
     public function __construct(
-        private UserRepositoryInterface $userRepository,
-        private UserPasswordHasherInterface $passwordHasher
+        private readonly UserRepositoryInterface     $userRepository,
+        private readonly UserPasswordHasherInterface $passwordHasher,
     ) {}
 
     public function execute(CreateUserRequest $request): CreateUserResponse
     {
-        $email = new Email($request->email);
+        $email = Email::fromString($request->email);
 
-        // Verificar que no exista
         if ($this->userRepository->emailExists($email)) {
             throw new UserAlreadyExistsException($email);
         }
 
-        // Crear usuario
-        $user = User::create(
-            $email,
-            $request->password, // Se hasheará después
-            $request->name
-        );
+        $user = User::create($email, $request->password, $request->name);
 
-        // Hashear password (necesitamos la entidad para Symfony)
-        $hashedPassword = $this->passwordHasher->hashPassword(
-            $user,
-            $request->password
-        );
+        $hashedPassword = $this->passwordHasher->hashPassword($user, $request->password);
         $user->updatePassword($hashedPassword);
 
-        // Guardar
         $this->userRepository->save($user);
 
-        // Retornar response
         return new CreateUserResponse(
             $user->id()->value(),
             $user->email()->value(),
             $user->name(),
-            $user->createdAt()->format('Y-m-d H:i:s')
+            $user->createdAt()->format('c'),
         );
     }
 }

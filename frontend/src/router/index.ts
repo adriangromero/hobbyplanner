@@ -9,6 +9,12 @@ const router = createRouter({
       redirect: '/projects'
     },
     {
+      path: '/login',
+      name: 'Login',
+      component: () => import('@/views/LoginView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
       path: '/projects',
       name: 'ProjectsList',
       component: () => import('@/views/projects/ProjectsListView.vue'),
@@ -21,6 +27,18 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
   ]
+})
+
+router.beforeEach((to) => {
+  const auth = useAuthStore()
+
+  if (to.meta.requiresAuth && !auth.isAuthenticated) {
+    return { name: 'Login' }
+  }
+
+  if (to.name === 'Login' && auth.isAuthenticated) {
+    return { name: 'ProjectsList' }
+  }
 })
 
 export default router

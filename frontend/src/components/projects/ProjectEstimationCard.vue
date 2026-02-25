@@ -3,9 +3,9 @@
     <h2 class="text-xl font-semibold mb-2">Project Estimation</h2>
 
     <p><strong>Start date:</strong> {{ est.startDate ?? '—' }}</p>
-    <p><strong>Worked:</strong> {{ est.workedHours.toFixed(1) }}h</p>
-    <p><strong>Remaining:</strong> {{ est.remainingHours.toFixed(1) }}h</p>
-    <p><strong>Velocity:</strong> {{ est.velocityPerDay.toFixed(2) }}h/day</p>
+    <p><strong>Worked:</strong> {{ est.workedHours.toFixed(1) ?? '—' }}h</p>
+    <p><strong>Remaining:</strong> {{ est.remainingHours.toFixed(1) ?? '—' }}h</p>
+    <p><strong>Velocity:</strong> {{ est.velocityPerDay.toFixed(2) ?? '—' }}h/day</p>
     <p><strong>Days remaining:</strong> {{ est.daysRemaining ?? '—' }}</p>
     <p><strong>Estimated completion:</strong> {{ est.estimatedCompletionDate ?? '—' }}</p>
   </div>

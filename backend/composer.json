@@ -8,15 +8,12 @@
         "php": ">=8.2",
         "ext-ctype": "*",
         "ext-iconv": "*",
-
         "doctrine/doctrine-bundle": "^2.18",
         "doctrine/doctrine-migrations-bundle": "^3.7",
         "doctrine/orm": "^3.5",
-
         "lexik/jwt-authentication-bundle": "^2.20",
         "nelmio/cors-bundle": "^2.6",
         "ramsey/uuid": "^4.7",
-
         "symfony/asset": "7.1.*",
         "symfony/console": "7.1.*",
         "symfony/dotenv": "7.1.*",

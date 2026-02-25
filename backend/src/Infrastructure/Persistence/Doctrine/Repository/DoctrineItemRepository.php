@@ -12,11 +12,6 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * Repository Doctrine que implementa el puerto del dominio.
- *
- * Hexagonal:
- * Domain ← interface ← Infrastructure (Doctrine)
- *
  * @extends ServiceEntityRepository<Item>
  */
 final class DoctrineItemRepository extends ServiceEntityRepository implements ItemRepositoryInterface
@@ -26,20 +21,10 @@ final class DoctrineItemRepository extends ServiceEntityRepository implements It
         parent::__construct($registry, Item::class);
     }
 
-    public function save(Item $item, bool $flush = true): void
+    public function save(Item $item): void
     {
         $this->getEntityManager()->persist($item);
-
-        if ($flush) {
-            $this->getEntityManager()->flush();
-        }
-    }
-
-    public function findAll(): array
-    {
-        return $this->createQueryBuilder('p')
-            ->getQuery()
-            ->getResult();
+        $this->getEntityManager()->flush();
     }
 
     public function findById(ItemId $id): ?Item
@@ -50,24 +35,12 @@ final class DoctrineItemRepository extends ServiceEntityRepository implements It
             ->getQuery()
             ->getOneOrNullResult();
     }
-    
-    public function sumEstimatedByProject(ProjectId $projectId): float
+
+    public function findByProject(ProjectId $projectId): array
     {
-        $result = $this->createQueryBuilder('i')
-            ->select('SUM(i.estimatedHours)')
+        return $this->createQueryBuilder('i')
             ->where('i.projectId = :projectId')
             ->setParameter('projectId', $projectId->value())
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        return (float) ($result ?? 0);
-    }
-
-    public function findByProject(ProjectId $id): array
-    {
-        return $this->createQueryBuilder('p')
-            ->andWhere('p.projectId = :id')
-            ->setParameter('id', $id->value())
             ->getQuery()
             ->getResult();
     }
@@ -80,10 +53,10 @@ final class DoctrineItemRepository extends ServiceEntityRepository implements It
             ->setParameter('projectId', $projectId->value())
             ->getQuery()
             ->getSingleScalarResult();
-        
+
         return (float) ($result ?? 0);
     }
-    
+
     public function countByProject(ProjectId $projectId): int
     {
         return (int) $this->createQueryBuilder('i')
