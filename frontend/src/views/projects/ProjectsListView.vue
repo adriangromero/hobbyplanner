@@ -5,6 +5,13 @@
     <div v-if="store.loading" class="text-gray-500">Loading...</div>
 
     <div v-else class="space-y-3">
+      <button
+        @click="showCreateProjectModal = true"
+        class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+      >
+        Create Project
+      </button>
+
       <div
         v-for="p in store.projects"
         :key="p.id"
@@ -15,20 +22,29 @@
         <p class="text-gray-600 text-sm">{{ p.description || 'No description' }}</p>
       </div>
     </div>
+
+    <CreateProjectModal
+      v-if="showCreateProjectModal"
+      @close="showCreateProjectModal = false"
+    />
+
   </div>
 </template>
 
-<script setup>
-import { onMounted } from 'vue'
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProjectStore } from '@/stores/projectStore'
+import CreateProjectModal from '@/components/projects/CreateProjectModal.vue'
 
-const store = useProjectStore()
+const store  = useProjectStore()
 const router = useRouter()
+
+const showCreateProjectModal = ref(false)
 
 onMounted(() => store.loadProjects())
 
-function go(id) {
+function go(id: string) {
   router.push(`/projects/${id}`)
 }
 </script>

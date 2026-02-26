@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domain\Entity;
 
-use App\Domain\ValueObject\PaintingSessionId;
 use App\Domain\ValueObject\WorkSessionId;
 use App\Domain\ValueObject\UserId;
 use App\Domain\ValueObject\ProjectId;
@@ -14,42 +13,30 @@ use DateTimeImmutable;
 final class WorkSession
 {
     public function __construct(
-        private WorkSessionId $id,
-        private ProjectId $projectId,
-        private ItemId $itemId,
-        private UserId $userId,
-        private DateTimeImmutable $startedAt,
+        private WorkSessionId      $id,
+        private ProjectId          $projectId,
+        private ItemId             $itemId,
+        private UserId             $userId,
+        private DateTimeImmutable  $startedAt,
         private ?DateTimeImmutable $endedAt,
     ) {}
 
-    public function id(): WorkSessionId
+    public function id(): WorkSessionId { return $this->id; }
+    public function projectId(): ProjectId { return $this->projectId; }
+    public function itemId(): ItemId { return $this->itemId; }
+    public function userId(): UserId { return $this->userId; }
+    public function startedAt(): DateTimeImmutable { return $this->startedAt; }
+    public function endedAt(): ?DateTimeImmutable { return $this->endedAt; }
+
+    public function finish(): void
     {
-        return $this->id;
+        $this->endedAt = new DateTimeImmutable();
     }
 
-    public function projectId(): ProjectId
+    public function update(DateTimeImmutable $startedAt, ?DateTimeImmutable $endedAt): void
     {
-        return $this->projectId;
-    }
-
-    public function itemId(): ItemId
-    {
-        return $this->itemId;
-    }
-
-    public function userId(): UserId
-    {
-        return $this->userId;
-    }
-
-    public function startedAt(): DateTimeImmutable
-    {
-        return $this->startedAt;
-    }
-
-    public function endedAt(): ?DateTimeImmutable
-    {
-        return $this->endedAt;
+        $this->startedAt = $startedAt;
+        $this->endedAt   = $endedAt;
     }
 
     public function durationSeconds(): int

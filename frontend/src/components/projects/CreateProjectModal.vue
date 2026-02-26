@@ -3,26 +3,24 @@
     <div class="modal">
 
       <header class="modal__header">
-        <h2>Nova sessió de treball</h2>
+        <h2>Create Project</h2>
         <button class="modal__close" @click="close">✕</button>
       </header>
 
       <section class="modal__body">
-        <form @submit.prevent="onSubmit">
-
-          <div class="form-group">
-            <label for="item">Selecciona un item</label>
-            <select id="item" v-model="form.itemId" required>
-              <option disabled value="">— Selecciona —</option>
-              <option 
-                v-for="item in items" 
-                :key="item.id" 
-                :value="item.id"
-              >
-                {{ item.name }}
-              </option>
-            </select>
+        <form @submit.prevent="handleSubmit">
+          <div>
+            <label>Nombre</label>
+            <input v-model="form.name" required />
           </div>
+
+          <div>
+            <label>Descripción</label>
+            <textarea v-model="form.description"></textarea>
+          </div>
+
+          <button type="submit">Guardar</button>
+          <button type="button" @click="close">Cancelar</button>
         </form>
       </section>
 

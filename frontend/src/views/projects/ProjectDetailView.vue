@@ -4,7 +4,7 @@
     <div v-if="store.loading" class="text-gray-500">Loading...</div>
 
     <div v-else-if="project">
-      <router-link 
+      <router-link
         to="/projects"
         class="text-blue-600 hover:underline text-sm"
       >
@@ -16,16 +16,7 @@
 
       <ProjectEstimationCard class="mb-6" />
 
-      <!-- Header Items + Botón -->
-      <div class="flex justify-between items-center mb-3">
-        <h2 class="text-xl font-semibold">Items</h2>
-        <button
-          @click="showStartWorkSessionModal = true"
-          class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
-        >
-          ▶ Nueva Sesión
-        </button>
-      </div>
+      <h2 class="text-xl font-semibold mb-3">Items</h2>
 
       <ItemsTable :items="items" />
     </div>
@@ -34,32 +25,23 @@
       Project not found
     </div>
 
-    <!-- Modal Nueva Sesión -->
-    <StartWorkSessionModal
-      v-if="showStartWorkSessionModal"
-      :items="items"
-      @close="showStartWorkSessionModal = false"
-    />
-
   </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted } from 'vue'
+<script setup lang="ts">
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProjectStore } from '@/stores/projectStore'
 import ItemsTable from '@/components/items/ItemsTable.vue'
 import ProjectEstimationCard from '@/components/projects/ProjectEstimationCard.vue'
-import StartWorkSessionModal from '@/components/sessions/StartWorkSessionModal.vue'
 
 const store = useProjectStore()
 const route = useRoute()
 
 const project = computed(() => store.currentProject)
-const items = computed(() => store.items)
-const showStartWorkSessionModal = ref(false)
+const items   = computed(() => store.items)
 
 onMounted(() => {
-  store.loadProject(route.params.id)
+  store.loadProject(route.params.id as string)
 })
 </script>
