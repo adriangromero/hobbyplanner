@@ -135,5 +135,21 @@ export const useProjectStore = defineStore('project', {
       item.sessions      = item.sessions.filter(s => s.id !== sessionId)
       item.totalSessions = Math.max(0, item.totalSessions - 1)
     },
+
+    addItem(item: Item) {
+      this.items.push(item)
+    },
+
+    updateItem(updated: { id: string; name: string; estimatedHours: number }) {
+      const item = this.items.find(i => i.id === updated.id)
+      if (!item) return
+
+      item.name           = updated.name
+      item.estimatedHours = updated.estimatedHours
+    },
+
+    removeItem(itemId: string) {
+      this.items = this.items.filter(i => i.id !== itemId)
+    },
   }
 })

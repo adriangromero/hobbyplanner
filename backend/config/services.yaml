@@ -22,12 +22,17 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
-
     App\Domain\Repository\UserRepositoryInterface:
         class: App\Infrastructure\Persistence\Doctrine\Repository\DoctrineUserRepository
-    
-    App\Domain\Repository\WorkSessionRepository:
+
+    App\Domain\Repository\WorkSessionRepositoryInterface:
         class: App\Infrastructure\Persistence\Doctrine\Repository\DoctrineWorkSessionRepository
+
+    App\Domain\Repository\ItemRepositoryInterface:
+        class: App\Infrastructure\Persistence\Doctrine\Repository\DoctrineItemRepository
+
+    App\Domain\Repository\ProjectRepositoryInterface:
+        class: App\Infrastructure\Persistence\Doctrine\Repository\DoctrineProjectRepository
 
     # Controllers
     App\Infrastructure\Controller\:

@@ -66,4 +66,10 @@ final class DoctrineItemRepository extends ServiceEntityRepository implements It
             ->getQuery()
             ->getSingleScalarResult();
     }
+
+    public function delete(Item $item): void
+    {
+        $this->getEntityManager()->remove($item);
+        $this->getEntityManager()->flush();
+    }
 }

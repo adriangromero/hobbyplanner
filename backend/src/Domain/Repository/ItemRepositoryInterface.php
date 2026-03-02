@@ -11,15 +11,9 @@ use App\Domain\ValueObject\ProjectId;
 interface ItemRepositoryInterface
 {
     public function save(Item $item): void;
-
     public function findById(ItemId $id): ?Item;
-
-    /**
-     * @return Item[]
-     */
     public function findByProject(ProjectId $projectId): array;
-
     public function getTotalEstimatedHoursByProject(ProjectId $projectId): float;
-
     public function countByProject(ProjectId $projectId): int;
+    public function delete(Item $item): void;
 }

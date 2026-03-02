@@ -24,12 +24,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
 #[Route('/api/work-sessions')]
-final class WorkSessionController extends AbstractController
+final class WorkSessionController extends ApiController
 {
-    public function __construct(
-        private readonly UserRepositoryInterface $userRepository,
-    ) {}
-
     #[Route('', name: 'api_work_sessions_start', methods: ['POST'])]
     public function start(
         Request $request,
@@ -37,23 +33,10 @@ final class WorkSessionController extends AbstractController
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
-        if (!isset($data['itemId'], $data['projectId'])) {
-            return new JsonResponse(
-                ['error' => 'Faltan campos requeridos: itemId, projectId'],
-                Response::HTTP_BAD_REQUEST
-            );
-        }
+        $error = $this->validateRequired($data, ['itemId', 'projectId']);
+        if ($error) return $error;
 
-        $currentUser = $this->userRepository->findByEmail(
-            Email::fromString($this->getUser()->getUserIdentifier())
-        );
-
-        if ($currentUser === null) {
-            return new JsonResponse(
-                ['error' => 'Usuario no encontrado'],
-                Response::HTTP_UNAUTHORIZED
-            );
-        }
+        $currentUser = $this->getCurrentUser();
 
         try {
             $response = $useCase->execute(new StartWorkSessionRequest(
