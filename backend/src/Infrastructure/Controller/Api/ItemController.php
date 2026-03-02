@@ -91,21 +91,21 @@ final class ItemController extends ApiController
         }
     }
 
-        #[Route('/{id}', name: 'api_item_delete', methods: ['DELETE'])]
-        public function delete(
-            string $id,
-            DeleteItemUseCase $useCase,
-        ): JsonResponse {
-            try {
-                $useCase->execute(new DeleteItemRequest($id));
+    #[Route('/{id}', name: 'api_item_delete', methods: ['DELETE'])]
+    public function delete(
+        string $id,
+        DeleteItemUseCase $useCase,
+    ): JsonResponse {
+        try {
+            $useCase->execute(new DeleteItemRequest($id));
 
-                return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+            return new JsonResponse(null, Response::HTTP_NO_CONTENT);
 
-            } catch (ItemNotFoundException $e) {
-                return new JsonResponse(
-                    ['error' => $e->getMessage()],
-                    Response::HTTP_NOT_FOUND
-                );
-            }
+        } catch (ItemNotFoundException $e) {
+            return new JsonResponse(
+                ['error' => $e->getMessage()],
+                Response::HTTP_NOT_FOUND
+            );
         }
     }
+}

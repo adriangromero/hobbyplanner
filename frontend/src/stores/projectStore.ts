@@ -140,6 +140,10 @@ export const useProjectStore = defineStore('project', {
       this.items.push(item)
     },
 
+    addProject(project: Project) {
+      this.projects.push(project)
+    },
+
     updateItem(updated: { id: string; name: string; estimatedHours: number }) {
       const item = this.items.find(i => i.id === updated.id)
       if (!item) return

@@ -12,30 +12,31 @@ use Symfony\Component\Security\Core\User\UserInterface;
 
 final class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
-    private UserId $id;
-    private Email $email;
-    private string $password;
-    private string $name;
-    private array $roles;
-    private bool $active;
+    private UserId            $id;
+    private Email             $email;
+    private string            $password;
+    private string            $name;
+    private array             $roles;
+    private bool              $active;
     private DateTimeImmutable $createdAt;
     private DateTimeImmutable $updatedAt;
 
     public function __construct(
         UserId $id,
-        Email $email,
+        Email  $email,
         string $password,
         string $name,
-        array $roles = ['ROLE_USER']
+        array  $roles = ['ROLE_USER']
     ) {
         $this->id        = $id;
         $this->email     = $email;
         $this->password  = $password;
-        $this->name      = $name;
         $this->roles     = $roles;
         $this->active    = true;
         $this->createdAt = new DateTimeImmutable();
         $this->updatedAt = new DateTimeImmutable();
+
+        $this->updateName($name);
     }
 
     public static function create(Email $email, string $password, string $name): self
@@ -48,40 +49,30 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
         );
     }
 
-    public function id(): UserId
-    {
-        return $this->id;
-    }
+    public function id(): UserId                  { return $this->id; }
+    public function email(): Email                { return $this->email; }
+    public function name(): string                { return $this->name; }
+    public function isActive(): bool              { return $this->active; }
+    public function createdAt(): DateTimeImmutable { return $this->createdAt; }
+    public function updatedAt(): DateTimeImmutable { return $this->updatedAt; }
 
-    public function email(): Email
+    public function updateName(string $name): void
     {
-        return $this->email;
-    }
+        if (trim($name) === '') {
+            throw new \InvalidArgumentException('El nombre no puede estar vacío');
+        }
 
-    public function name(): string
-    {
-        return $this->name;
-    }
-
-    public function createdAt(): DateTimeImmutable
-    {
-        return $this->createdAt;
-    }
-
-    public function isActive(): bool
-    {
-        return $this->active;
+        $this->name      = trim($name);
+        $this->updatedAt = new DateTimeImmutable();
     }
 
     public function updatePassword(string $newPassword): void
     {
-        $this->password  = $newPassword;
-        $this->updatedAt = new DateTimeImmutable();
-    }
+        if (trim($newPassword) === '') {
+            throw new \InvalidArgumentException('La contraseña no puede estar vacía');
+        }
 
-    public function updateName(string $name): void
-    {
-        $this->name      = $name;
+        $this->password  = $newPassword;
         $this->updatedAt = new DateTimeImmutable();
     }
 
@@ -99,10 +90,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     // ===== UserInterface =====
 
-    public function getPassword(): string
-    {
-        return $this->password;
-    }
+    public function getPassword(): string { return $this->password; }
 
     public function getRoles(): array
     {
@@ -112,17 +100,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
         return array_unique($roles);
     }
 
-    public function getUserIdentifier(): string
-    {
-        return $this->email->value();
-    }
-
-    public function getSalt(): ?string
-    {
-        return null;
-    }
-
-    public function eraseCredentials(): void
-    {
-    }
+    public function getUserIdentifier(): string { return $this->email->value(); }
+    public function getSalt(): ?string          { return null; }
+    public function eraseCredentials(): void    {}
 }

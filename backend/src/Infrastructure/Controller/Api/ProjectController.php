@@ -8,17 +8,21 @@ use App\Application\DTO\ItemDTO;
 use App\Application\DTO\ProjectDTO;
 use App\Application\DTO\ProjectEstimationDTO;
 use App\Application\DTO\WorkSessionDTO;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use App\Application\UseCase\Project\ListProjects\ListProjectsRequest;
 use App\Application\UseCase\Project\ListProjects\ListProjectsUseCase;
 use App\Application\UseCase\Project\GetProjectWithItems\GetProjectWithItemsRequest;
 use App\Application\UseCase\Project\GetProjectWithItems\GetProjectWithItemsUseCase;
 use App\Application\UseCase\Project\GetProjectEstimation\GetProjectEstimationRequest;
 use App\Application\UseCase\Project\GetProjectEstimation\GetProjectEstimationUseCase;
+use App\Application\UseCase\Project\CreateProject\CreateProjectRequest;
+use App\Application\UseCase\Project\CreateProject\CreateProjectUseCase;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
 
 #[Route('/api/projects')]
-final class ProjectController
+final class ProjectController extends ApiController
 {
     #[Route('', name: 'api_projects_list', methods: ['GET'])]
     public function list(ListProjectsUseCase $useCase): JsonResponse
@@ -87,6 +91,40 @@ final class ProjectController
             'velocityPerDay'          => $dto->velocityPerDay,
             'daysRemaining'           => $dto->daysRemaining,
             'estimatedCompletionDate' => $dto->estimatedCompletionDate,
-    ]);
+        ]);
     }
+
+    #[Route('', name: 'api_create_project', methods: ['POST'])]
+    public function create(
+        Request $request,
+        CreateProjectUseCase $useCase,
+    ): JsonResponse {
+        $data = json_decode($request->getContent(), true);
+
+        $error = $this->validateRequired($data, ['name', 'description']);
+        if ($error) return $error;
+
+        $currentUser = $this->getCurrentUser();
+
+        try {
+            $response = $useCase->execute(new CreateProjectRequest(
+                userId:         $currentUser->id()->value(),
+                name:           $data['name'],
+                description:    $data['description'],
+            ));
+
+            $dto = $response->project();
+
+            return new JsonResponse([
+                'id'             => $dto->id,
+                'name'           => $dto->name,
+                'description'    => $dto->description,
+                'createdAt'      => $dto->createdAt,
+            ], Response::HTTP_CREATED);
+
+        } catch (\InvalidArgumentException $e) {
+            return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+    }  
+
 }

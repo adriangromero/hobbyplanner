@@ -9,7 +9,8 @@
         <id name="id" type="project_id" column="id" length="36">
             <generator strategy="NONE"/>
         </id>
-
+        <!-- UserId (Value Object) -->
+        <field name="userId" type="user_id" column="user_id" length="36"/>
         <field name="name" type="string" column="name" length="255"/>
         <field name="description" type="text" column="description" nullable="true"/>
         <field name="createdAt" type="datetime_immutable" column="created_at"/>

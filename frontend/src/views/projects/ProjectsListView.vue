@@ -20,6 +20,7 @@
       >
         <h2 class="text-xl font-semibold">{{ p.name }}</h2>
         <p class="text-gray-600 text-sm">{{ p.description || 'No description' }}</p>
+        <p class="text-gray-600 text-sm"><span>{{ formatDate(p.createdAt) }}</span></p>
       </div>
     </div>
 
@@ -46,5 +47,12 @@ onMounted(() => store.loadProjects())
 
 function go(id: string) {
   router.push(`/projects/${id}`)
+}
+
+function formatDate(dateString: string): string {
+  return new Date(dateString).toLocaleString('es-ES', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
 }
 </script>

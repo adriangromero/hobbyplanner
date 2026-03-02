@@ -19,10 +19,29 @@ final class Project
 
     public function __construct(ProjectId $id, UserId $userId, string $name, string $description)
     {
-        $this->id = $id;
-        $this->userId = $userId;
-        $this->name = $name;
-        $this->description = $description;
+        $this->id        = $id;
+        $this->userId    = $userId;
+        $this->createdAt = new DateTimeImmutable();
+        $this->updatedAt = new DateTimeImmutable();
+
+        $this->rename($name);
+        $this->updateDescription($description);
+    }
+
+    public function rename(string $name): void
+    {
+        if (trim($name) === '') {
+            throw new \InvalidArgumentException('El nombre del proyecto no puede estar vacío');
+        }
+
+        $this->name      = trim($name);
+        $this->updatedAt = new DateTimeImmutable();
+    }
+
+    public function updateDescription(string $description): void
+    {
+        $this->description = trim($description); // descripción puede estar vacía
+        $this->updatedAt   = new DateTimeImmutable();
     }
 
     public function id(): ProjectId
