@@ -16,8 +16,6 @@
 
       <ProjectEstimationCard class="mb-6" />
 
-      <h2 class="text-xl font-semibold mb-3">Items</h2>
-
       <ItemsTable :items="items" />
     </div>
 
