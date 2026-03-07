@@ -6,18 +6,18 @@
         @click="showCreateModal = true"
         class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
       >
-        + Add Item
+        + Añadir item
       </button>
     </div>
 
     <table class="w-full bg-white rounded-lg shadow-sm border">
       <thead class="bg-gray-100 text-left">
         <tr>
-          <th class="p-3">Name</th>
-          <th class="p-3">Estimated</th>
-          <th class="p-3">Sessions</th>
-          <th class="p-3">Worked</th>
-          <th class="p-3">Actions</th>
+          <th class="p-3">Nombre</th>
+          <th class="p-3">Estimadas</th>
+          <th class="p-3">Sesiones</th>
+          <th class="p-3">Trabajadas</th>
+          <th class="p-3">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -28,7 +28,7 @@
         />
         <tr v-if="items.length === 0">
           <td colspan="5" class="p-6 text-center text-gray-400 text-sm">
-            No items yet. Add one to get started.
+            Aún no hay items. Añade uno para empezar.
           </td>
         </tr>
       </tbody>
@@ -46,19 +46,13 @@ import { ref } from 'vue'
 import ItemRow from './ItemRow.vue'
 import CreateItemModal from './CreateItemModal.vue'
 
-interface Session {
-  id:            string
-  startedAt:     string
-  endedAt:       string | null
-  durationHours: number
-}
-
 interface Item {
   id:             string
   name:           string
   estimatedHours: number
   totalSessions:  number
-  sessions:       Session[]
+  totalHours:     number
+  openSession:    { id: string; startedAt: string } | null
 }
 
 defineProps<{ items: Item[] }>()

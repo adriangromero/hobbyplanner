@@ -7,16 +7,12 @@ namespace App\Infrastructure\Persistence\Doctrine\Repository;
 use App\Domain\Entity\Project;
 use App\Domain\Repository\ProjectRepositoryInterface;
 use App\Domain\ValueObject\ProjectId;
+use App\Domain\ValueObject\UserId;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * Repository Doctrine que implementa el puerto del dominio.
- *
- * Hexagonal:
- * Domain ← interface ← Infrastructure (Doctrine)
- *
- * @extends ServiceEntityRepository<User>
+ * @extends ServiceEntityRepository<Project>
  */
 final class DoctrineProjectRepository extends ServiceEntityRepository implements ProjectRepositoryInterface
 {
@@ -25,36 +21,34 @@ final class DoctrineProjectRepository extends ServiceEntityRepository implements
         parent::__construct($registry, Project::class);
     }
 
-    public function save(Project $project, bool $flush = true): void
+    public function save(Project $project): void
     {
         $this->getEntityManager()->persist($project);
-
-        if ($flush) {
-            $this->getEntityManager()->flush();
-        }
-    }
-
-    public function findAll(): array
-    {
-        return $this->createQueryBuilder('p')
-            ->getQuery()
-            ->getResult();
+        $this->getEntityManager()->flush();
     }
 
     public function findById(ProjectId $id): ?Project
     {
         return $this->createQueryBuilder('p')
-            ->andWhere('p.id = :id')
+            ->where('p.id = :id')
             ->setParameter('id', $id->value())
             ->getQuery()
             ->getOneOrNullResult();
     }
 
-    public function delete(Project $project, bool $flush = true): void
+    public function findByUser(UserId $userId): array
+    {
+        return $this->createQueryBuilder('p')
+            ->where('p.userId = :userId')
+            ->setParameter('userId', $userId->value())
+            ->orderBy('p.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function delete(Project $project): void
     {
         $this->getEntityManager()->remove($project);
-        if ($flush) {
-            $this->getEntityManager()->flush();
-        }
+        $this->getEntityManager()->flush();
     }
 }

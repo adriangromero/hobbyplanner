@@ -72,4 +72,14 @@ final class DoctrineItemRepository extends ServiceEntityRepository implements It
         $this->getEntityManager()->remove($item);
         $this->getEntityManager()->flush();
     }
+
+    public function deleteByProject(ProjectId $projectId): void
+    {
+        $this->createQueryBuilder('i')
+            ->delete()
+            ->where('i.projectId = :projectId')
+            ->setParameter('projectId', $projectId->value())
+            ->getQuery()
+            ->execute();
+    }
 }

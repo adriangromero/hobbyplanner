@@ -16,4 +16,6 @@ interface ItemRepositoryInterface
     public function getTotalEstimatedHoursByProject(ProjectId $projectId): float;
     public function countByProject(ProjectId $projectId): int;
     public function delete(Item $item): void;
+
+    public function deleteByProject(ProjectId $projectId): void;
 }

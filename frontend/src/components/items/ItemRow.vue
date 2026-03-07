@@ -41,7 +41,7 @@
 
     <!-- Horas trabajadas -->
     <td class="p-3 text-sm text-gray-600">
-      {{ formatHours(totalHours) }}
+      {{ formatHours(item.totalHours) }}
     </td>
 
     <!-- Acciones -->
@@ -102,10 +102,11 @@
           </template>
           <button
             v-else
-            @click="confirmingStart = true"
-            :disabled="loading"
-            class="text-green-600 hover:text-green-700 transition-colors disabled:opacity-50"
-            title="Iniciar sesión"
+            @click="tryStart"
+            :disabled="loading || anotherSessionActive"
+            :class="anotherSessionActive ? 'text-gray-300 cursor-not-allowed' : 'text-green-600 hover:text-green-700'"
+            class="transition-colors disabled:opacity-50"
+            :title="anotherSessionActive ? 'Sesión activa en ' + timer.activeItemName : 'Iniciar sesión'"
           >
             ▶
           </button>
@@ -119,14 +120,15 @@
           <div v-if="editItemError" class="text-red-500 text-xs">{{ editItemError }}</div>
           <button
             @click="handleUpdateItem"
-            :disabled="editItemLoading"
+            :disabled="loading"
             class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded transition disabled:opacity-50"
           >
-            {{ editItemLoading ? '...' : '✓' }}
+            ✓
           </button>
           <button
             @click="cancelEditItem"
-            class="text-xs text-gray-500 hover:text-gray-700 transition"
+            :disabled="loading"
+            class="text-xs text-gray-500 hover:text-gray-700 transition disabled:opacity-50"
           >
             ✕
           </button>
@@ -170,118 +172,25 @@
     </td>
   </tr>
 
-  <!-- Overlay bloqueante -->
-  <Teleport to="body">
-    <div
-      v-if="loading"
-      class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[9998]"
-    >
-      <div class="bg-white rounded-xl shadow-2xl px-10 py-8 flex flex-col items-center gap-4">
-        <div class="w-10 h-10 border-4 border-gray-200 border-t-red-600 rounded-full animate-spin" />
-        <p class="text-gray-700 font-semibold text-lg">{{ loadingMessage }}</p>
-        <p class="text-gray-400 text-sm">{{ item.name }}</p>
-      </div>
-    </div>
-  </Teleport>
+  <BlockingOverlay :active="loading" :message="loadingMessage" :detail="item.name" />
 
-  <!-- Modal sesiones -->
-  <Teleport to="body">
-    <div
-      v-if="showSessionsModal"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      @click.self="closeSessionsModal"
-    >
-      <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
-
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-800">Sesiones — {{ item.name }}</h3>
-          <button @click="closeSessionsModal" class="text-gray-400 hover:text-gray-700">✕</button>
-        </div>
-
-        <div v-if="item.sessions.length === 0" class="text-gray-400 text-sm py-4 text-center">
-          No hay sesiones registradas
-        </div>
-
-        <div v-else class="space-y-2 max-h-80 overflow-y-auto">
-          <div v-for="session in item.sessions" :key="session.id">
-
-            <!-- Vista normal -->
-            <div
-              v-if="editingSessionId !== session.id && deletingSessionId !== session.id"
-              class="flex justify-between items-center p-3 bg-gray-50 rounded-lg text-sm"
-            >
-              <div class="text-gray-600">
-                <span>{{ formatDate(session.startedAt) }}</span>
-                <span class="mx-2 text-gray-400">→</span>
-                <span>{{ session.endedAt ? formatDate(session.endedAt) : 'En curso' }}</span>
-              </div>
-              <div class="flex items-center gap-3">
-                <span class="font-medium text-gray-800">{{ formatHours(session.durationHours) }}</span>
-                <button @click="startEditSession(session)" class="text-blue-400 hover:text-blue-600 transition-colors" title="Editar">✏️</button>
-                <button @click="deletingSessionId = session.id" class="text-red-400 hover:text-red-600 transition-colors" title="Eliminar">🗑️</button>
-              </div>
-            </div>
-
-            <!-- Confirmar eliminar sesión -->
-            <div
-              v-else-if="deletingSessionId === session.id"
-              class="p-3 bg-red-50 border border-red-200 rounded-lg text-sm flex justify-between items-center"
-            >
-              <span class="text-red-700 font-medium">¿Eliminar esta sesión?</span>
-              <div class="flex gap-2">
-                <button @click="deletingSessionId = null" class="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 transition">Cancelar</button>
-                <button @click="handleDeleteSession(session.id)" class="px-3 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded transition">Eliminar</button>
-              </div>
-            </div>
-
-            <!-- Editar sesión -->
-            <div
-              v-else
-              class="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm space-y-2"
-            >
-              <div class="flex gap-2 items-center">
-                <label class="text-gray-600 w-16 shrink-0">Inicio</label>
-                <input v-model="editSessionForm.startedAt" type="datetime-local" class="flex-1 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
-              </div>
-              <div class="flex gap-2 items-center">
-                <label class="text-gray-600 w-16 shrink-0">Fin</label>
-                <input v-model="editSessionForm.endedAt" type="datetime-local" class="flex-1 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
-              </div>
-              <div v-if="editSessionError" class="text-red-500 text-xs">{{ editSessionError }}</div>
-              <div class="flex gap-2 justify-end pt-1">
-                <button @click="cancelEditSession" class="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 transition">Cancelar</button>
-                <button @click="handleUpdateSession(session.id)" :disabled="editSessionLoading" class="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded transition disabled:opacity-50">
-                  {{ editSessionLoading ? '...' : 'Guardar' }}
-                </button>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <div v-if="item.sessions.length > 0" class="mt-4 pt-4 border-t flex justify-end">
-          <span class="text-sm text-gray-500">
-            Total: <strong>{{ formatHours(totalHours) }}</strong>
-          </span>
-        </div>
-
-      </div>
-    </div>
-  </Teleport>
+  <SessionsModal v-model="showSessionsModal" :item="item" />
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useTimerStore } from '@/stores/timerStore'
 import { useProjectStore } from '@/stores/projectStore'
+import { useBlockingAction } from '@/composables/useBlockingAction'
 import { useToast } from '@/composables/useToast'
+import BlockingOverlay from '@/components/ui/BlockingOverlay.vue'
+import SessionsModal from './SessionsModal.vue'
+import { formatHours } from '@/utils/format'
 import api from '@/api/axios'
 
-interface Session {
-  id:            string
-  startedAt:     string
-  endedAt:       string | null
-  durationHours: number
+interface OpenSession {
+  id:        string
+  startedAt: string
 }
 
 interface Item {
@@ -289,7 +198,8 @@ interface Item {
   name:           string
   estimatedHours: number
   totalSessions:  number
-  sessions:       Session[]
+  totalHours:     number
+  openSession:    OpenSession | null
 }
 
 const props = defineProps<{ item: Item }>()
@@ -297,37 +207,29 @@ const props = defineProps<{ item: Item }>()
 const timer        = useTimerStore()
 const projectStore = useProjectStore()
 const toast        = useToast()
+const { loading, loadingMessage, run } = useBlockingAction()
 
 // Timer
-const loading         = ref(false)
-const loadingMessage  = ref('')
 const confirmingStart = ref(false)
 const confirmingStop  = ref(false)
 
 // Item edit/delete
-const editingItem      = ref(false)
-const deletingItem     = ref(false)
-const editItemLoading  = ref(false)
-const editItemError    = ref<string | null>(null)
-const editForm         = ref({ name: '', estimatedHours: '' })
+const editingItem   = ref(false)
+const deletingItem  = ref(false)
+const editItemError = ref<string | null>(null)
+const editForm      = ref({ name: '', estimatedHours: '' })
 
 // Sessions modal
-const showSessionsModal  = ref(false)
-const editingSessionId   = ref<string | null>(null)
-const deletingSessionId  = ref<string | null>(null)
-const editSessionLoading = ref(false)
-const editSessionError   = ref<string | null>(null)
-const editSessionForm    = ref({ startedAt: '', endedAt: '' })
+const showSessionsModal = ref(false)
 
 const isActive = computed(() =>
   timer.isRunning && timer.activeItemId === props.item.id
 )
 
-const totalHours = computed(() =>
-  props.item.sessions
-    .filter(s => s.endedAt !== null)
-    .reduce((sum, s) => sum + s.durationHours, 0)
+const anotherSessionActive = computed(() =>
+  timer.isRunning && timer.activeItemId !== props.item.id
 )
+
 
 // ── Item ────────────────────────────────────────────────
 
@@ -360,170 +262,76 @@ async function handleUpdateItem() {
     return
   }
 
-  editItemLoading.value = true
+  await run('Guardando item...', async () => {
+    try {
+      const { data } = await api.put(`/items/${props.item.id}`, {
+        name:           editForm.value.name.trim(),
+        estimatedHours: parseFloat(editForm.value.estimatedHours),
+      })
 
-  try {
-    const { data } = await api.put(`/items/${props.item.id}`, {
-      name:           editForm.value.name.trim(),
-      estimatedHours: parseFloat(editForm.value.estimatedHours),
-    })
+      projectStore.updateItem({
+        id:             data.id,
+        name:           data.name,
+        estimatedHours: data.estimatedHours,
+      })
 
-    projectStore.updateItem({
-      id:             data.id,
-      name:           data.name,
-      estimatedHours: data.estimatedHours,
-    })
+      cancelEditItem()
+      toast.success(`Item "${data.name}" actualizado`)
 
-    cancelEditItem()
-    toast.success(`Item "${data.name}" actualizado`)
-
-  } catch (e: any) {
-    editItemError.value = e.response?.data?.error ?? 'Error al actualizar'
-  } finally {
-    editItemLoading.value = false
-  }
+    } catch (e: any) {
+      editItemError.value = e.response?.data?.error ?? 'Error al actualizar'
+    }
+  })
 }
 
 async function handleDeleteItem() {
-  loading.value        = true
-  loadingMessage.value = 'Eliminando item...'
-
-  try {
-    await api.delete(`/items/${props.item.id}`)
-    projectStore.removeItem(props.item.id)
-    toast.success(`Item "${props.item.name}" eliminado`)
-  } catch {
-    toast.error('Error al eliminar el item')
-  } finally {
-    loading.value = false
-  }
+  await run('Eliminando item...', async () => {
+    try {
+      await api.delete(`/items/${props.item.id}`)
+      projectStore.removeItem(props.item.id)
+      toast.success(`Item "${props.item.name}" eliminado`)
+    } catch {
+      toast.error('Error al eliminar el item')
+    }
+  })
 }
 
 // ── Timer ────────────────────────────────────────────────
 
+function tryStart() {
+  if (anotherSessionActive.value) {
+    toast.error('Finaliza la sesión de "' + timer.activeItemName + '" primero')
+    return
+  }
+  confirmingStart.value = true
+}
+
 async function handleStart() {
   confirmingStart.value = false
-  loading.value         = true
-  loadingMessage.value  = 'Iniciando sesión...'
 
-  try {
-    await timer.start(props.item.id, props.item.name, projectStore.currentProject!.id)
-    toast.success(`Sesión iniciada — ${props.item.name}`)
-  } catch {
-    toast.error('Error al iniciar la sesión')
-  } finally {
-    loading.value = false
-  }
+  await run('Iniciando sesión...', async () => {
+    try {
+      await timer.start(props.item.id, props.item.name, projectStore.currentProject!.id)
+      toast.success(`Sesión iniciada — ${props.item.name}`)
+    } catch {
+      toast.error('Error al iniciar la sesión')
+    }
+  })
 }
 
 async function handleStop() {
   confirmingStop.value = false
-  loading.value        = true
-  loadingMessage.value = 'Finalizando sesión...'
 
-  const session = await timer.stop()
+  await run('Finalizando sesión...', async () => {
+    const session = await timer.stop()
 
-  if (session) {
-    projectStore.addSessionToItem(props.item.id, {
-      id:            session.id,
-      startedAt:     session.startedAt,
-      endedAt:       session.endedAt,
-      durationHours: session.durationHours,
-    })
-    toast.success(`Sesión guardada — ${formatHours(session.durationHours)}`)
-  } else {
-    toast.error('Error al guardar la sesión')
-  }
+    if (!session) {
+      toast.error('Error al guardar la sesión')
+      return
+    }
 
-  loading.value = false
-}
-
-// ── Sessions ────────────────────────────────────────────────
-
-function closeSessionsModal() {
-  showSessionsModal.value = false
-  deletingSessionId.value = null
-  cancelEditSession()
-}
-
-function startEditSession(session: Session) {
-  deletingSessionId.value = null
-  editingSessionId.value  = session.id
-  editSessionError.value  = null
-  editSessionForm.value = {
-    startedAt: toDatetimeLocal(session.startedAt),
-    endedAt:   session.endedAt ? toDatetimeLocal(session.endedAt) : '',
-  }
-}
-
-function cancelEditSession() {
-  editingSessionId.value = null
-  editSessionError.value = null
-  editSessionForm.value  = { startedAt: '', endedAt: '' }
-}
-
-async function handleUpdateSession(sessionId: string) {
-  editSessionLoading.value = true
-  editSessionError.value   = null
-
-  try {
-    const { data } = await api.put(`/work-sessions/${sessionId}`, {
-      startedAt: new Date(editSessionForm.value.startedAt).toISOString(),
-      endedAt:   editSessionForm.value.endedAt
-        ? new Date(editSessionForm.value.endedAt).toISOString()
-        : null,
-    })
-
-    projectStore.updateSession(props.item.id, {
-      id:            data.id,
-      startedAt:     data.startedAt,
-      endedAt:       data.endedAt,
-      durationHours: data.durationHours,
-    })
-
-    cancelEditSession()
-    toast.success('Sesión actualizada correctamente')
-
-  } catch (e: any) {
-    editSessionError.value = e.response?.data?.error ?? 'Error al guardar'
-    toast.error(editSessionError.value!)
-  } finally {
-    editSessionLoading.value = false
-  }
-}
-
-async function handleDeleteSession(sessionId: string) {
-  loading.value        = true
-  loadingMessage.value = 'Eliminando sesión...'
-
-  try {
-    await api.delete(`/work-sessions/${sessionId}`)
-    projectStore.removeSessionFromItem(props.item.id, sessionId)
-    deletingSessionId.value = null
-    toast.success('Sesión eliminada correctamente')
-  } catch {
-    toast.error('Error al eliminar la sesión')
-  } finally {
-    loading.value = false
-  }
-}
-
-// ── Utils ────────────────────────────────────────────────
-
-function toDatetimeLocal(isoString: string): string {
-  return new Date(isoString).toISOString().slice(0, 16)
-}
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleString('es-ES', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
+    projectStore.addSessionToItem(props.item.id, session)
+    toast.success(`Sesión finalizada — ${formatHours(session.durationHours)}`)
   })
-}
-
-function formatHours(hours: number): string {
-  const h = Math.floor(hours)
-  const m = Math.round((hours - h) * 60)
-  return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
 </script>

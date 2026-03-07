@@ -8,6 +8,7 @@ use App\Domain\ValueObject\WorkSessionId;
 use App\Domain\ValueObject\UserId;
 use App\Domain\ValueObject\ProjectId;
 use App\Domain\ValueObject\ItemId;
+use App\Domain\Exception\ValidationException;
 use DateTimeImmutable;
 
 final class WorkSession
@@ -35,6 +36,10 @@ final class WorkSession
 
     public function update(DateTimeImmutable $startedAt, ?DateTimeImmutable $endedAt): void
     {
+        if ($endedAt !== null && $endedAt < $startedAt) {
+            throw new ValidationException('La fecha de fin no puede ser anterior al inicio');
+        }
+
         $this->startedAt = $startedAt;
         $this->endedAt   = $endedAt;
     }

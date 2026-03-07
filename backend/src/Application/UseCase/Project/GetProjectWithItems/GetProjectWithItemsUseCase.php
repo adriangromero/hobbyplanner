@@ -11,6 +11,7 @@ use App\Domain\Entity\Item;
 use App\Domain\Entity\WorkSession;
 use App\Domain\Repository\ItemRepositoryInterface;
 use App\Domain\Repository\ProjectRepositoryInterface;
+use App\Domain\Exception\ProjectNotFoundException;
 use App\Domain\Repository\WorkSessionRepositoryInterface;
 
 final class GetProjectWithItemsUseCase
@@ -23,8 +24,13 @@ final class GetProjectWithItemsUseCase
 
     public function execute(GetProjectWithItemsRequest $request): GetProjectWithItemsResponse
     {
-        $projectId      = $request->projectId();
-        $project        = $this->projectRepository->findById($projectId);
+        $projectId = $request->projectId();
+        $project   = $this->projectRepository->findById($projectId);
+
+        if ($project === null) {
+            throw new ProjectNotFoundException($projectId->value());
+        }
+
         $items          = $this->itemRepository->findByProject($projectId);
         $sessionsByItem = $this->sessionRepository->findGroupedByItem($projectId);
 
@@ -39,15 +45,23 @@ final class GetProjectWithItemsUseCase
 
     private function buildItemDTO(Item $item, array $sessionsByItem): ItemDTO
     {
-        $sessions = $sessionsByItem[$item->id()->value()] ?? [];
+        $sessions    = $sessionsByItem[$item->id()->value()] ?? [];
+        $totalHours  = 0.0;
+        $openSession = null;
+
+        foreach ($sessions as $session) {
+            if ($session->endedAt() !== null) {
+                $totalHours += $session->durationHours();
+            } else {
+                $openSession = WorkSessionDTO::fromEntity($session);
+            }
+        }
 
         return ItemDTO::fromEntity(
             $item,
             count($sessions),
-            array_map(
-                fn(WorkSession $session) => WorkSessionDTO::fromEntity($session),
-                $sessions
-            )
+            $totalHours,
+            $openSession,
         );
     }
 }

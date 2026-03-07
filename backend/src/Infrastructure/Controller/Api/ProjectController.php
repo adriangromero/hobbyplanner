@@ -6,10 +6,6 @@ namespace App\Infrastructure\Controller\Api;
 
 use App\Application\DTO\ItemDTO;
 use App\Application\DTO\ProjectDTO;
-use App\Application\DTO\ProjectEstimationDTO;
-use App\Application\DTO\WorkSessionDTO;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 use App\Application\UseCase\Project\ListProjects\ListProjectsRequest;
 use App\Application\UseCase\Project\ListProjects\ListProjectsUseCase;
 use App\Application\UseCase\Project\GetProjectWithItems\GetProjectWithItemsRequest;
@@ -18,7 +14,13 @@ use App\Application\UseCase\Project\GetProjectEstimation\GetProjectEstimationReq
 use App\Application\UseCase\Project\GetProjectEstimation\GetProjectEstimationUseCase;
 use App\Application\UseCase\Project\CreateProject\CreateProjectRequest;
 use App\Application\UseCase\Project\CreateProject\CreateProjectUseCase;
+use App\Application\UseCase\Project\UpdateProject\UpdateProjectRequest;
+use App\Application\UseCase\Project\UpdateProject\UpdateProjectUseCase;
+use App\Application\UseCase\Project\DeleteProject\DeleteProjectRequest;
+use App\Application\UseCase\Project\DeleteProject\DeleteProjectUseCase;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
 #[Route('/api/projects')]
@@ -27,7 +29,8 @@ final class ProjectController extends ApiController
     #[Route('', name: 'api_projects_list', methods: ['GET'])]
     public function list(ListProjectsUseCase $useCase): JsonResponse
     {
-        $response = $useCase->execute(new ListProjectsRequest());
+        $currentUser = $this->getCurrentUser();
+        $response = $useCase->execute(new ListProjectsRequest($currentUser->id()->value()));
 
         return new JsonResponse([
             'projects' => array_map(
@@ -61,15 +64,10 @@ final class ProjectController extends ApiController
                     'estimatedHours' => $dto->estimatedHours,
                     'totalSessions'  => $dto->totalSessions,
                     'totalHours'     => $dto->totalHours,
-                    'sessions'       => array_map(
-                        fn(WorkSessionDTO $s) => [
-                            'id'            => $s->id,
-                            'startedAt'     => $s->startedAt,
-                            'endedAt'       => $s->endedAt,
-                            'durationHours' => $s->durationHours,
-                        ],
-                        $dto->sessions
-                    ),
+                    'openSession'    => $dto->openSession ? [
+                        'id'        => $dto->openSession->id,
+                        'startedAt' => $dto->openSession->startedAt,
+                    ] : null,
                 ],
                 $response->items()
             ),
@@ -88,7 +86,10 @@ final class ProjectController extends ApiController
             'estimatedHours'          => $dto->estimatedHours,
             'workedHours'             => $dto->workedHours,
             'remainingHours'          => $dto->remainingHours,
-            'velocityPerDay'          => $dto->velocityPerDay,
+            'velocityPerActiveDay'    => $dto->velocityPerActiveDay,
+            'activeDays'              => $dto->activeDays,
+            'frequencyDaysPerWeek'    => $dto->frequencyDaysPerWeek,
+            'activeDaysRemaining'     => $dto->activeDaysRemaining,
             'daysRemaining'           => $dto->daysRemaining,
             'estimatedCompletionDate' => $dto->estimatedCompletionDate,
         ]);
@@ -101,30 +102,59 @@ final class ProjectController extends ApiController
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
-        $error = $this->validateRequired($data, ['name', 'description']);
-        if ($error) return $error;
+        $this->validateRequired($data, ['name', 'description']);
 
         $currentUser = $this->getCurrentUser();
 
-        try {
-            $response = $useCase->execute(new CreateProjectRequest(
-                userId:         $currentUser->id()->value(),
-                name:           $data['name'],
-                description:    $data['description'],
-            ));
+        $response = $useCase->execute(new CreateProjectRequest(
+            userId:      $currentUser->id()->value(),
+            name:        $data['name'],
+            description: $data['description'],
+        ));
 
-            $dto = $response->project();
+        $dto = $response->project();
 
-            return new JsonResponse([
-                'id'             => $dto->id,
-                'name'           => $dto->name,
-                'description'    => $dto->description,
-                'createdAt'      => $dto->createdAt,
-            ], Response::HTTP_CREATED);
+        return new JsonResponse([
+            'id'          => $dto->id,
+            'name'        => $dto->name,
+            'description' => $dto->description,
+            'createdAt'   => $dto->createdAt,
+        ], Response::HTTP_CREATED);
+    }
 
-        } catch (\InvalidArgumentException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-    }  
+    #[Route('/{id}', name: 'api_project_update', methods: ['PUT'])]
+    public function update(
+        string $id,
+        Request $request,
+        UpdateProjectUseCase $useCase,
+    ): JsonResponse {
+        $data = json_decode($request->getContent(), true);
 
+        $this->validateRequired($data, ['name', 'description']);
+
+        $response = $useCase->execute(new UpdateProjectRequest(
+            projectId:   $id,
+            name:        $data['name'],
+            description: $data['description'],
+        ));
+
+        $dto = $response->project();
+
+        return new JsonResponse([
+            'id'          => $dto->id,
+            'name'        => $dto->name,
+            'description' => $dto->description,
+            'createdAt'   => $dto->createdAt,
+        ]);
+    }
+
+    #[Route('/{id}', name: 'api_project_delete', methods: ['DELETE'])]
+    public function delete(
+        string $id,
+        DeleteProjectUseCase $useCase,
+    ): JsonResponse {
+        $useCase->execute(new DeleteProjectRequest($id));
+
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+    }
 }

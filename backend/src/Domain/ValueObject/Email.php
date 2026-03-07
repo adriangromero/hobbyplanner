@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\ValueObject;
 
-use InvalidArgumentException;
+use App\Domain\Exception\InvalidEmailException;
 
 /**
  * Value Object for Email.
@@ -27,9 +27,7 @@ final class Email
     private function validate(string $email): void
     {
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new InvalidArgumentException(
-                sprintf('The email "%s" is not valid', $email)
-            );
+            throw new InvalidEmailException($email);
         }
     }
 

@@ -8,6 +8,7 @@ use App\Domain\Entity\WorkSession;
 use App\Domain\ValueObject\WorkSessionId;
 use App\Domain\ValueObject\ItemId;
 use App\Domain\ValueObject\ProjectId;
+use App\Domain\ValueObject\UserId;
 
 interface WorkSessionRepositoryInterface
 {
@@ -31,4 +32,10 @@ interface WorkSessionRepositoryInterface
      * @return array<string, WorkSession[]> itemId => WorkSession[]
      */
     public function findGroupedByItem(ProjectId $projectId): array;
+
+    public function findActiveByUser(UserId $userId): ?WorkSession;
+
+    public function deleteByItem(ItemId $itemId): void;
+
+    public function deleteByProject(ProjectId $projectId): void;
 }

@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Controller\Api;
 
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use App\Domain\Exception\ProjectNotFoundException;
+use App\Application\DTO\WorkSessionDTO;
 use App\Application\UseCase\Item\CreateItem\CreateItemRequest;
 use App\Application\UseCase\Item\CreateItem\CreateItemUseCase;
 use App\Application\UseCase\Item\UpdateItem\UpdateItemRequest;
 use App\Application\UseCase\Item\UpdateItem\UpdateItemUseCase;
 use App\Application\UseCase\Item\DeleteItem\DeleteItemRequest;
 use App\Application\UseCase\Item\DeleteItem\DeleteItemUseCase;
-use App\Domain\Exception\ItemNotFoundException;
+use App\Application\UseCase\Item\GetItemSessions\GetItemSessionsRequest;
+use App\Application\UseCase\Item\GetItemSessions\GetItemSessionsUseCase;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
 
 #[Route('/api/items')]
 final class ItemController extends ApiController
@@ -27,35 +28,28 @@ final class ItemController extends ApiController
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
-        $error = $this->validateRequired($data, ['name', 'estimatedHours', 'projectId']);
-        if ($error) return $error;
+        $this->validateRequired($data, ['name', 'estimatedHours', 'projectId']);
 
         $currentUser = $this->getCurrentUser();
 
-        try {
-            $response = $useCase->execute(new CreateItemRequest(
-                projectId:      $data['projectId'],
-                userId:         $currentUser->id()->value(),
-                name:           $data['name'],
-                estimatedHours: (float) $data['estimatedHours'],
-            ));
+        $response = $useCase->execute(new CreateItemRequest(
+            projectId:      $data['projectId'],
+            userId:         $currentUser->id()->value(),
+            name:           $data['name'],
+            estimatedHours: (float) $data['estimatedHours'],
+        ));
 
-            $dto = $response->item();
+        $dto = $response->item();
 
-            return new JsonResponse([
-                'id'             => $dto->id,
-                'name'           => $dto->name,
-                'estimatedHours' => $dto->estimatedHours,
-                'totalSessions'  => 0,
-                'sessions'       => [],
-            ], Response::HTTP_CREATED);
-
-        } catch (ProjectNotFoundException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_NOT_FOUND);
-        } catch (\InvalidArgumentException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-    }    
+        return new JsonResponse([
+            'id'             => $dto->id,
+            'name'           => $dto->name,
+            'estimatedHours' => $dto->estimatedHours,
+            'totalSessions'  => 0,
+            'totalHours'     => 0.0,
+            'openSession'    => null,
+        ], Response::HTTP_CREATED);
+    }
 
     #[Route('/{id}', name: 'api_item_update', methods: ['PUT'])]
     public function update(
@@ -65,30 +59,21 @@ final class ItemController extends ApiController
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
-        $error = $this->validateRequired($data, ['name', 'estimatedHours']);
-        if ($error) return $error;
+        $this->validateRequired($data, ['name', 'estimatedHours']);
 
-        try {
-            $response = $useCase->execute(new UpdateItemRequest(
-                itemId:      $id,
-                name:        $data['name'],
-                estimatedHours: (float) $data['estimatedHours'],
-            ));
+        $response = $useCase->execute(new UpdateItemRequest(
+            itemId:         $id,
+            name:           $data['name'],
+            estimatedHours: (float) $data['estimatedHours'],
+        ));
 
-            $dto = $response->item();
+        $dto = $response->item();
 
-            return new JsonResponse([
-                'id'             => $dto->id,
-                'name'           => $dto->name,
-                'estimatedHours' => $dto->estimatedHours,
-            ]);
-
-        } catch (ItemNotFoundException $e) {
-            return new JsonResponse(
-                ['error' => $e->getMessage()],
-                Response::HTTP_NOT_FOUND
-            );
-        }
+        return new JsonResponse([
+            'id'             => $dto->id,
+            'name'           => $dto->name,
+            'estimatedHours' => $dto->estimatedHours,
+        ]);
     }
 
     #[Route('/{id}', name: 'api_item_delete', methods: ['DELETE'])]
@@ -96,16 +81,28 @@ final class ItemController extends ApiController
         string $id,
         DeleteItemUseCase $useCase,
     ): JsonResponse {
-        try {
-            $useCase->execute(new DeleteItemRequest($id));
+        $useCase->execute(new DeleteItemRequest($id));
 
-            return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+    }
 
-        } catch (ItemNotFoundException $e) {
-            return new JsonResponse(
-                ['error' => $e->getMessage()],
-                Response::HTTP_NOT_FOUND
-            );
-        }
+    #[Route('/{id}/sessions', name: 'api_item_sessions', methods: ['GET'])]
+    public function sessions(
+        string $id,
+        GetItemSessionsUseCase $useCase,
+    ): JsonResponse {
+        $response = $useCase->execute(new GetItemSessionsRequest($id));
+
+        return new JsonResponse([
+            'sessions' => array_map(
+                fn(WorkSessionDTO $s) => [
+                    'id'            => $s->id,
+                    'startedAt'     => $s->startedAt,
+                    'endedAt'       => $s->endedAt,
+                    'durationHours' => $s->durationHours,
+                ],
+                $response->sessions()
+            ),
+        ]);
     }
 }

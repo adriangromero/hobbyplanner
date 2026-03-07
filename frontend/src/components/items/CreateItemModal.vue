@@ -98,7 +98,8 @@ async function handleCreate() {
       name:           data.name,
       estimatedHours: data.estimatedHours,
       totalSessions:  0,
-      sessions:       [],
+      totalHours:     0,
+      openSession:    null,
     })
 
     toast.success(`Item "${data.name}" creado correctamente`)

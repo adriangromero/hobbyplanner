@@ -8,6 +8,7 @@ use App\Application\DTO\ProjectEstimationDTO;
 use App\Domain\Repository\ItemRepositoryInterface;
 use App\Domain\Repository\ProjectRepositoryInterface;
 use App\Domain\Repository\WorkSessionRepositoryInterface;
+use App\Domain\Exception\ProjectNotFoundException;
 use App\Domain\Service\ProjectEstimator;
 
 final class GetProjectEstimationUseCase
@@ -23,7 +24,12 @@ final class GetProjectEstimationUseCase
     {
         $projectId = $request->projectId();
 
-        $project  = $this->projectRepository->findById($projectId);
+        $project = $this->projectRepository->findById($projectId);
+
+        if ($project === null) {
+            throw new ProjectNotFoundException($projectId->value());
+        }
+
         $items    = $this->itemRepository->findByProject($projectId);
         $sessions = $this->workSessionRepository->findByProject($projectId);
 

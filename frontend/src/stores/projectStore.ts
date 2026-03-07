@@ -9,12 +9,18 @@ type Session = {
   durationHours: number
 }
 
+type OpenSession = {
+  id:        string
+  startedAt: string
+}
+
 type Item = {
   id:             string
   name:           string
   estimatedHours: number
   totalSessions:  number
-  sessions:       Session[]
+  totalHours:     number
+  openSession:    OpenSession | null
 }
 
 type Project = {
@@ -29,7 +35,10 @@ type Estimation = {
   estimatedHours:          number
   workedHours:             number
   remainingHours:          number
-  velocityPerDay:          number
+  velocityPerActiveDay:    number
+  activeDays:              number
+  frequencyDaysPerWeek:    number
+  activeDaysRemaining:     number | null
   daysRemaining:           number | null
   estimatedCompletionDate: string | null
 }
@@ -90,23 +99,31 @@ export const useProjectStore = defineStore('project', {
       if (timer.isRunning) return
 
       for (const item of this.items) {
-        const openSession = item.sessions.find(s => s.endedAt === null)
+        if (!item.openSession) continue
 
-        if (openSession) {
-          // Calcular segundos transcurridos desde que empezó
-          const elapsedSeconds = Math.floor(
-            (Date.now() - new Date(openSession.startedAt).getTime()) / 1000
-          )
+        const elapsedSeconds = Math.floor(
+          (Date.now() - new Date(item.openSession.startedAt).getTime()) / 1000
+        )
 
-          timer.restore(
-            openSession.id,
-            item.id,
-            item.name,
-            this.currentProject!.id,
-            elapsedSeconds,
-          )
-          break
-        }
+        timer.restore(
+          item.openSession.id,
+          item.id,
+          item.name,
+          this.currentProject!.id,
+          elapsedSeconds,
+        )
+        break
+      }
+    },
+
+    async refreshEstimation() {
+      if (!this.currentProject) return
+
+      try {
+        const { data } = await api.get(`/projects/${this.currentProject.id}/estimation`)
+        this.estimation = data
+      } catch {
+        // silencioso — la estimación es secundaria
       }
     },
 
@@ -114,34 +131,44 @@ export const useProjectStore = defineStore('project', {
       const item = this.items.find(i => i.id === itemId)
       if (!item) return
 
+      item.openSession = null
       item.totalSessions++
-      item.sessions.unshift(session)
-    },
-
-    updateSession(itemId: string, updatedSession: Session) {
-      const item = this.items.find(i => i.id === itemId)
-      if (!item) return
-
-      const index = item.sessions.findIndex(s => s.id === updatedSession.id)
-      if (index !== -1) {
-        item.sessions[index] = updatedSession
+      if (session.endedAt !== null) {
+        item.totalHours += session.durationHours
       }
+
+      this.refreshEstimation()
     },
 
-    removeSessionFromItem(itemId: string, sessionId: string) {
+    adjustItemTotalHours(itemId: string, hoursDelta: number, sessionCountDelta = 0) {
       const item = this.items.find(i => i.id === itemId)
       if (!item) return
 
-      item.sessions      = item.sessions.filter(s => s.id !== sessionId)
-      item.totalSessions = Math.max(0, item.totalSessions - 1)
+      item.totalHours    = Math.max(0, item.totalHours + hoursDelta)
+      item.totalSessions = Math.max(0, item.totalSessions + sessionCountDelta)
+
+      this.refreshEstimation()
     },
 
     addItem(item: Item) {
       this.items.push(item)
+      this.refreshEstimation()
     },
 
     addProject(project: Project) {
       this.projects.push(project)
+    },
+
+    updateProject(updated: { id: string; name: string; description: string }) {
+      const project = this.projects.find((p: Project) => p.id === updated.id)
+      if (!project) return
+
+      project.name        = updated.name
+      project.description = updated.description
+    },
+
+    removeProject(projectId: string) {
+      this.projects = this.projects.filter((p: Project) => p.id !== projectId)
     },
 
     updateItem(updated: { id: string; name: string; estimatedHours: number }) {
@@ -150,10 +177,12 @@ export const useProjectStore = defineStore('project', {
 
       item.name           = updated.name
       item.estimatedHours = updated.estimatedHours
+      this.refreshEstimation()
     },
 
     removeItem(itemId: string) {
       this.items = this.items.filter(i => i.id !== itemId)
+      this.refreshEstimation()
     },
   }
 })

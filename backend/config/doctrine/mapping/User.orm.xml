@@ -16,7 +16,7 @@
         <field name="roles" type="json" column="roles"/>
         <field name="active" type="boolean" column="active"/>
         <field name="createdAt" type="datetime_immutable" column="created_at"/>
-        <field name="updatedAt" type="datetime_immutable" column="updated_at" nullable="true"/>
+        <field name="updatedAt" type="datetime_immutable" column="updated_at"/>
 
     </entity>
 

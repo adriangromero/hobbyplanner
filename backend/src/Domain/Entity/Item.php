@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Entity;
 
+use App\Domain\Exception\ValidationException;
 use App\Domain\ValueObject\ItemId;
 use App\Domain\ValueObject\UserId;
 use App\Domain\ValueObject\ProjectId;
@@ -45,10 +46,16 @@ final class Item
     public function createdAt(): DateTimeImmutable { return $this->createdAt; }
     public function updatedAt(): DateTimeImmutable { return $this->updatedAt; }
 
+    public function update(string $name, float $estimatedHours): void
+    {
+        $this->rename($name);
+        $this->updateEstimatedHours($estimatedHours);
+    }
+
     public function rename(string $name): void
     {
         if (trim($name) === '') {
-            throw new \InvalidArgumentException('El nombre del item no puede estar vacío');
+            throw new ValidationException('El nombre del item no puede estar vacío');
         }
 
         $this->name      = trim($name);
@@ -58,7 +65,7 @@ final class Item
     public function updateEstimatedHours(float $hours): void
     {
         if ($hours <= 0) {
-            throw new \InvalidArgumentException('Las horas estimadas deben ser mayores a 0');
+            throw new ValidationException('Las horas estimadas deben ser mayores a 0');
         }
 
         $this->estimatedHours = $hours;

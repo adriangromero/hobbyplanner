@@ -6,14 +6,6 @@ namespace App\Domain\ValueObject;
 
 use Ramsey\Uuid\Uuid;
 
-/**
- * Value Object para el ID de Usuario.
- * 
- * ¿Por qué no usar string directamente?
- * - Tipado fuerte: function findUser(UserId $id) vs function findUser(string $id)
- * - No puedes pasar un email donde va un ID por error
- * - El ID sabe generarse solo (UUID)
- */
 final class WorkSessionId
 {
     private string $value;
@@ -30,6 +22,10 @@ final class WorkSessionId
 
     public static function fromString(string $value): self
     {
+        if (!Uuid::isValid($value)) {
+            throw new \InvalidArgumentException("Invalid WorkSessionId: '{$value}'");
+        }
+
         return new self($value);
     }
 

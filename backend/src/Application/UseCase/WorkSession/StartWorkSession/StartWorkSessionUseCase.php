@@ -10,6 +10,7 @@ use App\Domain\Repository\WorkSessionRepositoryInterface;
 use App\Domain\ValueObject\WorkSessionId;
 use App\Domain\Repository\ItemRepositoryInterface;
 use App\Domain\Repository\ProjectRepositoryInterface;
+use App\Domain\Exception\ActiveSessionExistsException;
 use App\Domain\Exception\ItemNotFoundException;
 use App\Domain\Exception\ProjectNotFoundException;
 
@@ -23,6 +24,12 @@ final class StartWorkSessionUseCase
 
     public function execute(StartWorkSessionRequest $request): StartWorkSessionResponse
     {
+        $activeSession = $this->sessionRepository->findActiveByUser($request->userId());
+
+        if ($activeSession !== null) {
+            throw new ActiveSessionExistsException();
+        }
+
         $item = $this->itemRepository->findById($request->itemId());
 
         if ($item === null) {

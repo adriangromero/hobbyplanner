@@ -12,83 +12,67 @@ use DateTimeImmutable;
 final class ProjectEstimator
 {
     /**
-     * @param Item[] $items
+     * @param Item[]        $items
      * @param WorkSession[] $sessions
      */
     public function estimate(
         DateTimeImmutable $projectStart,
         array $items,
-        array $sessions
-    ): ProjectEstimation
-    {
-        $estimatedHours = array_sum(array_map(fn($i) => $i->estimatedHours(), $items));
-        $workedHours = array_sum(array_map(fn($s) => $s->durationHours(), $sessions));
-        $remainingHours = $estimatedHours - $workedHours;
+        array $sessions,
+    ): ProjectEstimation {
+        $estimatedHours = array_sum(array_map(fn(Item $i) => $i->estimatedHours(), $items));
+        $workedHours    = array_sum(array_map(fn(WorkSession $s) => $s->durationHours(), $sessions));
+        $remainingHours = max(0.0, $estimatedHours - $workedHours);
 
-        $velocity = $this->calculateVelocitySinceStart($projectStart, $sessions);
+        $activeDays = $this->countActiveDays($sessions);
+        $today      = new DateTimeImmutable();
 
-        $daysRemaining = $velocity > 0 ? ceil($remainingHours / $velocity) : null;
+        $daysSinceStart       = max(1, $projectStart->diff($today)->days);
+        $weeksSinceStart      = max(1.0, $daysSinceStart / 7);
+        $velocityPerActiveDay = $activeDays > 0 ? $workedHours / $activeDays : 0.0;
+        $frequencyDaysPerWeek = $activeDays / $weeksSinceStart;
 
-        $estimatedCompletionDate = $daysRemaining
-            ? $projectStart->modify("+{$daysRemaining} days")
-            : null;
+        $activeDaysRemaining      = null;
+        $daysRemaining            = null;
+        $estimatedCompletionDate  = null;
 
-        $daysRemaining = $velocity > 0
-            ? (int) ceil($remainingHours / $velocity)
-            : null;
+        if ($velocityPerActiveDay > 0 && $frequencyDaysPerWeek > 0) {
+            $activeDaysRemaining = (int) ceil($remainingHours / $velocityPerActiveDay);
+
+            // Convertir días activos a días reales de calendario
+            $daysRemaining = (int) ceil($activeDaysRemaining * 7 / $frequencyDaysPerWeek);
+
+            $estimatedCompletionDate = $today->modify("+{$daysRemaining} days");
+        }
 
         return new ProjectEstimation(
-            $projectStart,
-            $estimatedHours,
-            $workedHours,
-            $remainingHours,
-            $velocity,
-            $daysRemaining,
-            $estimatedCompletionDate
+            startDate:                $projectStart,
+            estimatedHours:           $estimatedHours,
+            workedHours:              $workedHours,
+            remainingHours:           $remainingHours,
+            velocityPerActiveDay:     $velocityPerActiveDay,
+            activeDays:               $activeDays,
+            frequencyDaysPerWeek:     round($frequencyDaysPerWeek, 1),
+            activeDaysRemaining:      $activeDaysRemaining,
+            daysRemaining:            $daysRemaining,
+            estimatedCompletionDate:  $estimatedCompletionDate,
         );
     }
-
 
     /**
      * @param WorkSession[] $sessions
      */
-    private function calculateVelocity(array $sessions): float
+    private function countActiveDays(array $sessions): int
     {
-        $thirtyDaysAgo = new DateTimeImmutable('-30 days');
+        $days = [];
 
-        $recent = array_filter($sessions, fn (WorkSession $s) =>
-            $s->endedAt() !== null && $s->endedAt() >= $thirtyDaysAgo
-        );
-
-        if (!$recent) {
-            return 0.0;
+        foreach ($sessions as $session) {
+            if ($session->endedAt() === null) {
+                continue;
+            }
+            $days[$session->workedDay()] = true;
         }
 
-        $hoursByDay = [];
-
-        foreach ($recent as $s) {
-            $day = $s->workedDay();
-            $hoursByDay[$day] = ($hoursByDay[$day] ?? 0) + $s->durationHours();
-        }
-
-        return array_sum($hoursByDay) / count($hoursByDay);
+        return count($days);
     }
-
-    private function calculateVelocitySinceStart(
-        DateTimeImmutable $projectStart,
-        array $sessions
-    ): float
-    {
-        $today = new DateTimeImmutable();
-        $daysSinceStart = $projectStart->diff($today)->days;
-
-        if ($daysSinceStart === 0) {
-            return 0.0;
-        }
-
-        $totalHours = array_sum(array_map(fn($s) => $s->durationHours(), $sessions));
-
-        return $totalHours / $daysSinceStart;
-    }
-
 }

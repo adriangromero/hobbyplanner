@@ -12,12 +12,6 @@ use App\Application\UseCase\WorkSession\UpdateWorkSession\UpdateWorkSessionReque
 use App\Application\UseCase\WorkSession\UpdateWorkSession\UpdateWorkSessionUseCase;
 use App\Application\UseCase\WorkSession\DeleteWorkSession\DeleteWorkSessionRequest;
 use App\Application\UseCase\WorkSession\DeleteWorkSession\DeleteWorkSessionUseCase;
-use App\Domain\Exception\ItemNotFoundException;
-use App\Domain\Exception\ProjectNotFoundException;
-use App\Domain\Exception\WorkSessionNotFoundException;
-use App\Domain\Repository\UserRepositoryInterface;
-use App\Domain\ValueObject\Email;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -33,33 +27,24 @@ final class WorkSessionController extends ApiController
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
-        $error = $this->validateRequired($data, ['itemId', 'projectId']);
-        if ($error) return $error;
+        $this->validateRequired($data, ['itemId', 'projectId']);
 
         $currentUser = $this->getCurrentUser();
 
-        try {
-            $response = $useCase->execute(new StartWorkSessionRequest(
-                itemId:    $data['itemId'],
-                projectId: $data['projectId'],
-                userId:    $currentUser->id()->value(),
-            ));
+        $response = $useCase->execute(new StartWorkSessionRequest(
+            itemId:    $data['itemId'],
+            projectId: $data['projectId'],
+            userId:    $currentUser->id()->value(),
+        ));
 
-            $dto = $response->session();
+        $dto = $response->session();
 
-            return new JsonResponse([
-                'id'        => $dto->id,
-                'itemId'    => $dto->itemId,
-                'projectId' => $dto->projectId,
-                'startedAt' => $dto->startedAt,
-            ], Response::HTTP_CREATED);
-
-        } catch (ItemNotFoundException | ProjectNotFoundException $e) {
-            return new JsonResponse(
-                ['error' => $e->getMessage()],
-                Response::HTTP_NOT_FOUND
-            );
-        }
+        return new JsonResponse([
+            'id'        => $dto->id,
+            'itemId'    => $dto->itemId,
+            'projectId' => $dto->projectId,
+            'startedAt' => $dto->startedAt,
+        ], Response::HTTP_CREATED);
     }
 
     #[Route('/{id}/finish', name: 'api_work_sessions_finish', methods: ['PUT'])]
@@ -67,25 +52,17 @@ final class WorkSessionController extends ApiController
         string $id,
         FinishWorkSessionUseCase $useCase,
     ): JsonResponse {
-        try {
-            $response = $useCase->execute(new FinishWorkSessionRequest($id));
+        $response = $useCase->execute(new FinishWorkSessionRequest($id));
 
-            $dto = $response->session();
+        $dto = $response->session();
 
-            return new JsonResponse([
-                'id'            => $dto->id,
-                'itemId'        => $dto->itemId,
-                'startedAt'     => $dto->startedAt,
-                'endedAt'       => $dto->endedAt,
-                'durationHours' => $dto->durationHours,
-            ]);
-
-        } catch (WorkSessionNotFoundException $e) {
-            return new JsonResponse(
-                ['error' => $e->getMessage()],
-                Response::HTTP_NOT_FOUND
-            );
-        }
+        return new JsonResponse([
+            'id'            => $dto->id,
+            'itemId'        => $dto->itemId,
+            'startedAt'     => $dto->startedAt,
+            'endedAt'       => $dto->endedAt,
+            'durationHours' => $dto->durationHours,
+        ]);
     }
 
     #[Route('/{id}', name: 'api_work_sessions_update', methods: ['PUT'])]
@@ -96,36 +73,23 @@ final class WorkSessionController extends ApiController
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
-        if (!isset($data['startedAt'])) {
-            return new JsonResponse(
-                ['error' => 'Falta campo requerido: startedAt'],
-                Response::HTTP_BAD_REQUEST
-            );
-        }
+        $this->validateRequired($data, ['startedAt']);
 
-        try {
-            $response = $useCase->execute(new UpdateWorkSessionRequest(
-                sessionId: $id,
-                startedAt: $data['startedAt'],
-                endedAt:   $data['endedAt'] ?? null,
-            ));
+        $response = $useCase->execute(new UpdateWorkSessionRequest(
+            sessionId: $id,
+            startedAt: $data['startedAt'],
+            endedAt:   $data['endedAt'] ?? null,
+        ));
 
-            $dto = $response->session();
+        $dto = $response->session();
 
-            return new JsonResponse([
-                'id'            => $dto->id,
-                'itemId'        => $dto->itemId,
-                'startedAt'     => $dto->startedAt,
-                'endedAt'       => $dto->endedAt,
-                'durationHours' => $dto->durationHours,
-            ]);
-
-        } catch (WorkSessionNotFoundException $e) {
-            return new JsonResponse(
-                ['error' => $e->getMessage()],
-                Response::HTTP_NOT_FOUND
-            );
-        }
+        return new JsonResponse([
+            'id'            => $dto->id,
+            'itemId'        => $dto->itemId,
+            'startedAt'     => $dto->startedAt,
+            'endedAt'       => $dto->endedAt,
+            'durationHours' => $dto->durationHours,
+        ]);
     }
 
     #[Route('/{id}', name: 'api_work_sessions_delete', methods: ['DELETE'])]
@@ -133,16 +97,8 @@ final class WorkSessionController extends ApiController
         string $id,
         DeleteWorkSessionUseCase $useCase,
     ): JsonResponse {
-        try {
-            $useCase->execute(new DeleteWorkSessionRequest($id));
+        $useCase->execute(new DeleteWorkSessionRequest($id));
 
-            return new JsonResponse(null, Response::HTTP_NO_CONTENT);
-
-        } catch (WorkSessionNotFoundException $e) {
-            return new JsonResponse(
-                ['error' => $e->getMessage()],
-                Response::HTTP_NOT_FOUND
-            );
-        }
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
 }

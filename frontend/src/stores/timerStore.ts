@@ -44,8 +44,7 @@ export const useTimerStore = defineStore('timer', {
   actions: {
     async start(itemId: string, itemName: string, projectId: string) {
       if (this.isRunning) {
-        await this.stop()
-        await new Promise(resolve => setTimeout(resolve, 100))
+        throw new Error(`Ya tienes una sesión activa en "${this.activeItemName}". Finalízala antes de iniciar otra.`)
       }
 
       try {

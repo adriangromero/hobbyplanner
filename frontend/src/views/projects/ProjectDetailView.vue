@@ -1,14 +1,14 @@
 <template>
-  <div class="max-w-3xl mx-auto p-6">
+  <div class="max-w-3xl mx-auto">
 
-    <div v-if="store.loading" class="text-gray-500">Loading...</div>
+    <div v-if="store.loading" class="text-gray-500">Cargando...</div>
 
     <div v-else-if="project">
       <router-link
         to="/projects"
         class="text-blue-600 hover:underline text-sm"
       >
-        ← Back to Projects
+        ← Volver a Proyectos
       </router-link>
 
       <h1 class="text-3xl font-bold mt-4">{{ project.name }}</h1>
@@ -20,7 +20,7 @@
     </div>
 
     <div v-else class="text-center text-gray-500">
-      Project not found
+      Proyecto no encontrado
     </div>
 
   </div>

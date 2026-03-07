@@ -8,34 +8,28 @@ use App\Domain\Entity\Item;
 
 final class ItemDTO
 {
-    /**
-     * @param WorkSessionDTO[] $sessions
-     */
     public function __construct(
-        public readonly string $id,
-        public readonly string $name,
-        public readonly float  $estimatedHours,
-        public readonly int    $totalSessions,
-        public readonly float  $totalHours,
-        public readonly array  $sessions,
+        public readonly string          $id,
+        public readonly string          $name,
+        public readonly float           $estimatedHours,
+        public readonly int             $totalSessions,
+        public readonly float           $totalHours,
+        public readonly ?WorkSessionDTO $openSession,
     ) {}
 
-    /**
-     * @param WorkSessionDTO[] $sessions
-     */
-    public static function fromEntity(Item $item, int $totalSessions = 0, array $sessions = []): self
-    {
+    public static function fromEntity(
+        Item             $item,
+        int              $totalSessions = 0,
+        float            $totalHours    = 0.0,
+        ?WorkSessionDTO  $openSession   = null,
+    ): self {
         return new self(
             id:             $item->id()->value(),
             name:           $item->name(),
             estimatedHours: $item->estimatedHours(),
             totalSessions:  $totalSessions,
-            totalHours:     array_reduce(
-                $sessions,
-                fn(float $carry, WorkSessionDTO $s) => $carry + $s->durationHours,
-                0.0
-            ),
-            sessions:       $sessions,
+            totalHours:     $totalHours,
+            openSession:    $openSession,
         );
     }
 }

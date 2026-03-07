@@ -8,61 +8,16 @@ use App\Domain\Entity\Project;
 use App\Domain\ValueObject\ProjectId;
 use App\Domain\ValueObject\UserId;
 
-/**
- * Interfaz del repositorio de usuarios.
- * 
- * ESTO ES UN PUERTO (hexagonal).
- * 
- * El Domain define QUÉ necesita, no CÓMO se hace.
- * La implementación (Doctrine, MySQL, API...) va en Infrastructure.
- * 
- * SOLID:
- * - Interface Segregation: Solo métodos necesarios para User
- * - Dependency Inversion: El dominio depende de abstracciones, no de Doctrine
- */
 interface ProjectRepositoryInterface
 {
     public function save(Project $project): void;
 
     public function findById(ProjectId $id): ?Project;
 
-    public function findAll(): array;
+    /**
+     * @return Project[]
+     */
+    public function findByUser(UserId $userId): array;
 
     public function delete(Project $project): void;
 }
-
-/*
-
-**¿Por qué interfaz y no clase directa?**
-```
-❌ MAL (acoplado):
-UseCase → DoctrineUserRepository → MySQL
-
-✅ BIEN (desacoplado):
-UseCase → UserRepositoryInterface ← DoctrineUserRepository
-```
-
-El UseCase solo conoce la interfaz. Le da igual si detrás hay MySQL, PostgreSQL, MongoDB o un archivo JSON.
-
----
-
-**Esto es Dependency Inversion (la D de SOLID):**
-- Módulos de alto nivel (UseCase) no dependen de módulos de bajo nivel (Doctrine)
-- Ambos dependen de abstracciones (la interfaz)
-
----
-
-Con esto **el Domain está completo**:
-```
-src/Domain/
-├── Entity/
-│   └── User.php ✅
-├── Repository/
-│   └── UserRepositoryInterface.php ✅
-├── ValueObject/
-│   ├── UserId.php ✅
-│   └── Email.php ✅
-└── Exception/
-    └── InvalidEmailException.php ✅
-
-    */

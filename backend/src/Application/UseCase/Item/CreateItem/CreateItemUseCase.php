@@ -6,12 +6,10 @@ namespace App\Application\UseCase\Item\CreateItem;
 
 use App\Application\DTO\ItemDTO;
 use App\Domain\Entity\Item;
+use App\Domain\Exception\ProjectNotFoundException;
 use App\Domain\Repository\ItemRepositoryInterface;
 use App\Domain\Repository\ProjectRepositoryInterface;
-use App\Application\UseCase\Item\CreateItem\CreateItemResponse;
-use App\Application\UseCase\Item\CreateItem\CreateItemRequest;
 use App\Domain\ValueObject\ItemId;
-use App\Domain\Exception\ProjectNotFoundException;
 
 final class CreateItemUseCase
 {
@@ -42,7 +40,7 @@ final class CreateItemUseCase
 
         // 4. Devolver Response con DTO
         return new CreateItemResponse(
-            ItemDTO::fromEntity($item, 0, [])
+            ItemDTO::fromEntity($item)
         );
     }
 

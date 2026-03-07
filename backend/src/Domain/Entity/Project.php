@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Entity;
 
+use App\Domain\Exception\ValidationException;
 use App\Domain\ValueObject\ProjectId;
 use App\Domain\ValueObject\UserId;
 use DateTimeImmutable;
@@ -31,7 +32,7 @@ final class Project
     public function rename(string $name): void
     {
         if (trim($name) === '') {
-            throw new \InvalidArgumentException('El nombre del proyecto no puede estar vacío');
+            throw new ValidationException('El nombre del proyecto no puede estar vacío');
         }
 
         $this->name      = trim($name);

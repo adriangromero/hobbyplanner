@@ -13,7 +13,10 @@ final class ProjectEstimationDTO
         public readonly float   $estimatedHours,
         public readonly float   $workedHours,
         public readonly float   $remainingHours,
-        public readonly float   $velocityPerDay,
+        public readonly float   $velocityPerActiveDay,
+        public readonly int     $activeDays,
+        public readonly float   $frequencyDaysPerWeek,
+        public readonly ?int    $activeDaysRemaining,
         public readonly ?int    $daysRemaining,
         public readonly ?string $estimatedCompletionDate,
     ) {}
@@ -25,7 +28,10 @@ final class ProjectEstimationDTO
             estimatedHours:          $estimation->estimatedHours(),
             workedHours:             $estimation->workedHours(),
             remainingHours:          $estimation->remainingHours(),
-            velocityPerDay:          $estimation->velocityPerDay(),
+            velocityPerActiveDay:    $estimation->velocityPerActiveDay(),
+            activeDays:              $estimation->activeDays(),
+            frequencyDaysPerWeek:    $estimation->frequencyDaysPerWeek(),
+            activeDaysRemaining:     $estimation->activeDaysRemaining(),
             daysRemaining:           $estimation->daysRemaining(),
             estimatedCompletionDate: $estimation->estimatedCompletionDate()?->format('Y-m-d'),
         );

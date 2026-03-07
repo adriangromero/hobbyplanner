@@ -1,27 +1,22 @@
 <template>
-  <div class="max-w-3xl mx-auto p-6">
-    <h1 class="text-3xl font-bold mb-6">Projects</h1>
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Proyectos</h1>
 
-    <div v-if="store.loading" class="text-gray-500">Loading...</div>
+    <div v-if="store.loading" class="text-gray-500">Cargando...</div>
 
     <div v-else class="space-y-3">
       <button
         @click="showCreateProjectModal = true"
         class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
       >
-        Create Project
+        Crear proyecto
       </button>
 
-      <div
+      <ProjectCard
         v-for="p in store.projects"
         :key="p.id"
-        @click="go(p.id)"
-        class="p-4 bg-white rounded-lg shadow-sm border hover:shadow-md cursor-pointer transition"
-      >
-        <h2 class="text-xl font-semibold">{{ p.name }}</h2>
-        <p class="text-gray-600 text-sm">{{ p.description || 'No description' }}</p>
-        <p class="text-gray-600 text-sm"><span>{{ formatDate(p.createdAt) }}</span></p>
-      </div>
+        :project="p"
+      />
     </div>
 
     <CreateProjectModal
@@ -34,25 +29,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useProjectStore } from '@/stores/projectStore'
 import CreateProjectModal from '@/components/projects/CreateProjectModal.vue'
+import ProjectCard from '@/components/projects/ProjectCard.vue'
 
-const store  = useProjectStore()
-const router = useRouter()
+const store = useProjectStore()
 
 const showCreateProjectModal = ref(false)
 
 onMounted(() => store.loadProjects())
-
-function go(id: string) {
-  router.push(`/projects/${id}`)
-}
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleString('es-ES', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
 </script>

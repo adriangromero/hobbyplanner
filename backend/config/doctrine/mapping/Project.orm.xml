@@ -5,16 +5,20 @@
                   https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
 
     <entity name="App\Domain\Entity\Project" table="projects">
-        
+
         <id name="id" type="project_id" column="id" length="36">
             <generator strategy="NONE"/>
         </id>
-        <!-- UserId (Value Object) -->
+
         <field name="userId" type="user_id" column="user_id" length="36"/>
         <field name="name" type="string" column="name" length="255"/>
-        <field name="description" type="text" column="description" nullable="true"/>
+        <field name="description" type="text" column="description"/>
         <field name="createdAt" type="datetime_immutable" column="created_at"/>
-        <field name="updatedAt" type="datetime_immutable" column="updated_at" nullable="true"/>
+        <field name="updatedAt" type="datetime_immutable" column="updated_at"/>
+
+        <indexes>
+            <index name="idx_projects_user_id" columns="user_id"/>
+        </indexes>
 
     </entity>
 

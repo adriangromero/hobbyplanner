@@ -6,16 +6,6 @@ namespace App\Domain\ValueObject;
 
 use Ramsey\Uuid\Uuid;
 
-/**
- * Value Object para el ID de Proyecto.
- *
- * Ventajas:
- * - Tipado fuerte: evita pasar strings incorrectos
- * - Generación automática de UUID
- * - Comparación segura entre IDs
- * - Compatible con Doctrine mediante un Custom Type
- */
-
 final class ProjectId
 {
     private string $value;
@@ -32,6 +22,10 @@ final class ProjectId
 
     public static function fromString(string $value): self
     {
+        if (!Uuid::isValid($value)) {
+            throw new \InvalidArgumentException("Invalid ProjectId: '{$value}'");
+        }
+
         return new self($value);
     }
 

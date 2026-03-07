@@ -2,9 +2,12 @@
   <div class="min-h-screen bg-gray-100 flex items-center justify-center">
     <div class="bg-white rounded-lg shadow-md w-full max-w-md p-8">
 
-      <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">
-        HobbyPlanner
-      </h1>
+      <div class="text-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">HobbyPlanner</h1>
+        <p class="text-gray-500 text-sm mt-2">
+          Gestiona tus proyectos de hobby. Inicia sesión o regístrate para comenzar.
+        </p>
+      </div>
 
       <!-- Tabs -->
       <div class="flex mb-6 border-b">
@@ -126,13 +129,19 @@ async function handleLogin() {
   try {
     await store.login(email.value, password.value)
     router.push('/projects')
-  } catch {}
+  } catch {
+    // store.error ya se muestra en el template
+  }
 }
 
 async function handleRegister() {
   try {
     await store.register(email.value, password.value, name.value)
-    mode.value = 'login'
-  } catch {}
+    // Auto-login tras registro exitoso
+    await store.login(email.value, password.value)
+    router.push('/projects')
+  } catch {
+    // store.error ya se muestra en el template
+  }
 }
 </script>

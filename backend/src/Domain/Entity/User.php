@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Entity;
 
+use App\Domain\Exception\ValidationException;
 use App\Domain\ValueObject\Email;
 use App\Domain\ValueObject\UserId;
 use DateTimeImmutable;
@@ -59,7 +60,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function updateName(string $name): void
     {
         if (trim($name) === '') {
-            throw new \InvalidArgumentException('El nombre no puede estar vacío');
+            throw new ValidationException('El nombre no puede estar vacío');
         }
 
         $this->name      = trim($name);
@@ -69,7 +70,7 @@ final class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function updatePassword(string $newPassword): void
     {
         if (trim($newPassword) === '') {
-            throw new \InvalidArgumentException('La contraseña no puede estar vacía');
+            throw new ValidationException('La contraseña no puede estar vacía');
         }
 
         $this->password  = $newPassword;

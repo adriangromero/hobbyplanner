@@ -1,6 +1,3 @@
-console.log("🔥 VITE CONFIG CARGADO 🔥");
-
-
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
@@ -17,10 +14,8 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost', // PUERTO 80
+        target: 'http://nginx',
         changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/api/, '/api')
       }
     }
   }

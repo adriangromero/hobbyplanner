@@ -8,9 +8,7 @@ use App\Application\UseCase\Auth\Login\LoginRequest;
 use App\Application\UseCase\Auth\Login\LoginUseCase;
 use App\Application\UseCase\User\CreateUser\CreateUserRequest;
 use App\Application\UseCase\User\CreateUser\CreateUserUseCase;
-use App\Domain\Exception\InvalidCredentialsException;
-use App\Domain\Exception\InvalidEmailException;
-use App\Domain\Exception\UserAlreadyExistsException;
+use App\Domain\Exception\ValidationException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -29,40 +27,22 @@ final class AuthController
     {
         $data = json_decode($request->getContent(), true);
 
-        if (!isset($data['email'], $data['password'], $data['name'])) {
-            return new JsonResponse(
-                ['error' => 'Faltan campos requeridos: email, password, name'],
-                Response::HTTP_BAD_REQUEST
-            );
-        }
+        $this->validateFields($data, ['email', 'password', 'name']);
 
-        try {
-            $response = $this->createUserUseCase->execute(
-                new CreateUserRequest(
-                    $data['email'],
-                    $data['password'],
-                    $data['name']
-                )
-            );
+        $response = $this->createUserUseCase->execute(
+            new CreateUserRequest(
+                $data['email'],
+                $data['password'],
+                $data['name']
+            )
+        );
 
-            return new JsonResponse([
-                'id'        => $response->id,
-                'email'     => $response->email,
-                'name'      => $response->name,
-                'createdAt' => $response->createdAt,
-            ], Response::HTTP_CREATED);
-
-        } catch (InvalidEmailException $e) {
-            return new JsonResponse(
-                ['error' => $e->getMessage()],
-                Response::HTTP_BAD_REQUEST
-            );
-        } catch (UserAlreadyExistsException $e) {
-            return new JsonResponse(
-                ['error' => $e->getMessage()],
-                Response::HTTP_CONFLICT
-            );
-        }
+        return new JsonResponse([
+            'id'        => $response->id,
+            'email'     => $response->email,
+            'name'      => $response->name,
+            'createdAt' => $response->createdAt,
+        ], Response::HTTP_CREATED);
     }
 
     #[Route('/login', name: 'api_auth_login', methods: ['POST'])]
@@ -70,34 +50,36 @@ final class AuthController
     {
         $data = json_decode($request->getContent(), true);
 
-        if (!isset($data['email'], $data['password'])) {
-            return new JsonResponse(
-                ['error' => 'Faltan campos requeridos: email, password'],
-                Response::HTTP_BAD_REQUEST
-            );
+        $this->validateFields($data, ['email', 'password']);
+
+        $response = $this->loginUseCase->execute(
+            new LoginRequest(
+                $data['email'],
+                $data['password']
+            )
+        );
+
+        return new JsonResponse([
+            'token' => $response->token,
+            'user'  => [
+                'id'    => $response->id,
+                'email' => $response->email,
+                'name'  => $response->name,
+            ],
+        ]);
+    }
+
+    private function validateFields(?array $data, array $fields): void
+    {
+        if ($data === null) {
+            throw new ValidationException('El cuerpo de la petición debe ser JSON válido');
         }
 
-        try {
-            $response = $this->loginUseCase->execute(
-                new LoginRequest(
-                    $data['email'],
-                    $data['password']
-                )
-            );
+        $missing = array_filter($fields, fn($field) => !isset($data[$field]));
 
-            return new JsonResponse([
-                'token' => $response->token,
-                'user'  => [
-                    'id'    => $response->id,
-                    'email' => $response->email,
-                    'name'  => $response->name,
-                ],
-            ]);
-
-        } catch (InvalidCredentialsException $e) {
-            return new JsonResponse(
-                ['error' => $e->getMessage()],
-                Response::HTTP_UNAUTHORIZED
+        if (!empty($missing)) {
+            throw new ValidationException(
+                'Faltan campos requeridos: ' . implode(', ', $missing)
             );
         }
     }

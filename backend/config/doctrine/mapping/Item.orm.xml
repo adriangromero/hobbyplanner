@@ -6,26 +6,21 @@
 
     <entity name="App\Domain\Entity\Item" table="items">
 
-        <!-- ID (Value Object) -->
         <id name="id" type="item_id" column="id" length="36">
             <generator strategy="NONE"/>
         </id>
 
-        <!-- ProjectId (Value Object) -->
         <field name="projectId" type="project_id" column="project_id" length="36"/>
-
-        <!-- UserId (Value Object) -->
         <field name="userId" type="user_id" column="user_id" length="36"/>
-
-        <!-- Name -->
         <field name="name" type="string" column="name" length="255"/>
-
-        <!-- Estimated hours -->
         <field name="estimatedHours" type="float" column="estimated_hours"/>
-
-        <!-- Timestamps -->
         <field name="createdAt" type="datetime_immutable" column="created_at"/>
         <field name="updatedAt" type="datetime_immutable" column="updated_at"/>
+
+        <indexes>
+            <index name="idx_items_project_id" columns="project_id"/>
+            <index name="idx_items_user_id" columns="user_id"/>
+        </indexes>
 
     </entity>
 

@@ -16,7 +16,7 @@ final class ListProjectsUseCase
 
     public function execute(ListProjectsRequest $request): ListProjectsResponse
     {
-        $projects = $this->projectRepository->findAll();
+        $projects = $this->projectRepository->findByUser($request->userId());
 
         return new ListProjectsResponse(
             array_map(

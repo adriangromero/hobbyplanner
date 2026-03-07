@@ -6,11 +6,13 @@ namespace App\Application\UseCase\Item\DeleteItem;
 
 use App\Domain\Exception\ItemNotFoundException;
 use App\Domain\Repository\ItemRepositoryInterface;
+use App\Domain\Repository\WorkSessionRepositoryInterface;
 
 final class DeleteItemUseCase
 {
     public function __construct(
-        private readonly ItemRepositoryInterface $itemRepository,
+        private readonly ItemRepositoryInterface        $itemRepository,
+        private readonly WorkSessionRepositoryInterface $sessionRepository,
     ) {}
 
     public function execute(DeleteItemRequest $request): void
@@ -21,6 +23,7 @@ final class DeleteItemUseCase
             throw new ItemNotFoundException($request->itemId()->value());
         }
 
+        $this->sessionRepository->deleteByItem($request->itemId());
         $this->itemRepository->delete($item);
     }
 }

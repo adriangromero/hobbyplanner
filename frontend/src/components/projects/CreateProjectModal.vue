@@ -7,7 +7,7 @@
       <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
 
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-800">Nuevo Projecto</h3>
+          <h3 class="text-lg font-semibold text-gray-800">Nuevo Proyecto</h3>
           <button @click="$emit('close')" class="text-gray-400 hover:text-gray-700">✕</button>
         </div>
 
@@ -45,7 +45,7 @@
             :disabled="loading"
             class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition disabled:opacity-50"
           >
-            {{ loading ? 'Creando...' : 'Crear Projecto' }}
+            {{ loading ? 'Creando...' : 'Crear Proyecto' }}
           </button>
         </div>
 
@@ -97,11 +97,11 @@ async function handleCreate() {
       createdAt:      data.createdAt,
     })
 
-    toast.success(`Projecto "${data.name}" creado correctamente`)
+    toast.success(`Proyecto "${data.name}" creado correctamente`)
     emit('close')
 
   } catch (e: any) {
-    error.value = e.response?.data?.error ?? 'Error al crear el projecto'
+    error.value = e.response?.data?.error ?? 'Error al crear el proyecto'
   } finally {
     loading.value = false
   }

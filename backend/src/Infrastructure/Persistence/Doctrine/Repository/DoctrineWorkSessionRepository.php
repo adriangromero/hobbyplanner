@@ -9,6 +9,7 @@ use App\Domain\Repository\WorkSessionRepositoryInterface;
 use App\Domain\ValueObject\WorkSessionId;
 use App\Domain\ValueObject\ItemId;
 use App\Domain\ValueObject\ProjectId;
+use App\Domain\ValueObject\UserId;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -79,5 +80,36 @@ final class DoctrineWorkSessionRepository extends ServiceEntityRepository implem
         }
 
         return $grouped;
+    }
+
+    public function findActiveByUser(UserId $userId): ?WorkSession
+    {
+        return $this->createQueryBuilder('ws')
+            ->where('ws.userId = :userId')
+            ->andWhere('ws.endedAt IS NULL')
+            ->setParameter('userId', $userId->value())
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    public function deleteByItem(ItemId $itemId): void
+    {
+        $this->createQueryBuilder('ws')
+            ->delete()
+            ->where('ws.itemId = :itemId')
+            ->setParameter('itemId', $itemId->value())
+            ->getQuery()
+            ->execute();
+    }
+
+    public function deleteByProject(ProjectId $projectId): void
+    {
+        $this->createQueryBuilder('ws')
+            ->delete()
+            ->where('ws.projectId = :projectId')
+            ->setParameter('projectId', $projectId->value())
+            ->getQuery()
+            ->execute();
     }
 }
