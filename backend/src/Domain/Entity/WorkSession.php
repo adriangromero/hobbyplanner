@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace App\Domain\Entity;
 
+use App\Domain\Exception\ValidationException;
+use App\Domain\Security\OwnableResource;
 use App\Domain\ValueObject\WorkSessionId;
 use App\Domain\ValueObject\UserId;
 use App\Domain\ValueObject\ProjectId;
 use App\Domain\ValueObject\ItemId;
-use App\Domain\Exception\ValidationException;
 use DateTimeImmutable;
 
-final class WorkSession
+final class WorkSession implements OwnableResource
 {
     public function __construct(
         private WorkSessionId      $id,
@@ -26,6 +27,7 @@ final class WorkSession
     public function projectId(): ProjectId { return $this->projectId; }
     public function itemId(): ItemId { return $this->itemId; }
     public function userId(): UserId { return $this->userId; }
+    public function ownerId(): UserId { return $this->userId; }
     public function startedAt(): DateTimeImmutable { return $this->startedAt; }
     public function endedAt(): ?DateTimeImmutable { return $this->endedAt; }
 

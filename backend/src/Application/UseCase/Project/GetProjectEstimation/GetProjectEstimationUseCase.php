@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Application\UseCase\Project\GetProjectEstimation;
 
 use App\Application\DTO\ProjectEstimationDTO;
+use App\Application\Security\OwnershipGuard;
 use App\Domain\Repository\ItemRepositoryInterface;
 use App\Domain\Repository\ProjectRepositoryInterface;
 use App\Domain\Repository\WorkSessionRepositoryInterface;
@@ -18,6 +19,7 @@ final class GetProjectEstimationUseCase
         private readonly ItemRepositoryInterface        $itemRepository,
         private readonly WorkSessionRepositoryInterface $workSessionRepository,
         private readonly ProjectEstimator               $estimator,
+        private readonly OwnershipGuard                 $ownershipGuard,
     ) {}
 
     public function execute(GetProjectEstimationRequest $request): GetProjectEstimationResponse
@@ -29,6 +31,8 @@ final class GetProjectEstimationUseCase
         if ($project === null) {
             throw new ProjectNotFoundException($projectId->value());
         }
+
+        $this->ownershipGuard->ensureOwnership($project);
 
         $items    = $this->itemRepository->findByProject($projectId);
         $sessions = $this->workSessionRepository->findByProject($projectId);

@@ -14,6 +14,7 @@
         <field name="userId" type="user_id" column="user_id" length="36"/>
         <field name="name" type="string" column="name" length="255"/>
         <field name="estimatedHours" type="float" column="estimated_hours"/>
+        <field name="status" type="string" column="status" length="20"/>
         <field name="createdAt" type="datetime_immutable" column="created_at"/>
         <field name="updatedAt" type="datetime_immutable" column="updated_at"/>
 

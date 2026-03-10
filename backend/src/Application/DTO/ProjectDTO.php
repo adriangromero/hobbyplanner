@@ -12,6 +12,7 @@ final class ProjectDTO
         public readonly string $id,
         public readonly string $name,
         public readonly string $description,
+        public readonly string $status,
         public readonly string $createdAt,
         public readonly string $updatedAt,
     ) {}
@@ -22,6 +23,7 @@ final class ProjectDTO
             id:          $project->id()->value(),
             name:        $project->name(),
             description: $project->description(),
+            status:      $project->status()->value,
             createdAt:   $project->createdAt()->format('c'),
             updatedAt:   $project->updatedAt()->format('c'),
         );

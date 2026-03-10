@@ -18,6 +18,8 @@ use App\Application\UseCase\Project\UpdateProject\UpdateProjectRequest;
 use App\Application\UseCase\Project\UpdateProject\UpdateProjectUseCase;
 use App\Application\UseCase\Project\DeleteProject\DeleteProjectRequest;
 use App\Application\UseCase\Project\DeleteProject\DeleteProjectUseCase;
+use App\Application\UseCase\Project\ToggleProjectStatus\ToggleProjectStatusRequest;
+use App\Application\UseCase\Project\ToggleProjectStatus\ToggleProjectStatusUseCase;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -38,6 +40,7 @@ final class ProjectController extends ApiController
                     'id'          => $dto->id,
                     'name'        => $dto->name,
                     'description' => $dto->description,
+                    'status'      => $dto->status,
                     'createdAt'   => $dto->createdAt,
                 ],
                 $response->projects()
@@ -55,6 +58,7 @@ final class ProjectController extends ApiController
                 'id'          => $response->project()->id,
                 'name'        => $response->project()->name,
                 'description' => $response->project()->description,
+                'status'      => $response->project()->status,
                 'createdAt'   => $response->project()->createdAt,
             ],
             'items' => array_map(
@@ -62,6 +66,8 @@ final class ProjectController extends ApiController
                     'id'             => $dto->id,
                     'name'           => $dto->name,
                     'estimatedHours' => $dto->estimatedHours,
+                    'status'         => $dto->status,
+                    'createdAt'      => $dto->createdAt,
                     'totalSessions'  => $dto->totalSessions,
                     'totalHours'     => $dto->totalHours,
                     'openSession'    => $dto->openSession ? [
@@ -118,6 +124,7 @@ final class ProjectController extends ApiController
             'id'          => $dto->id,
             'name'        => $dto->name,
             'description' => $dto->description,
+            'status'      => $dto->status,
             'createdAt'   => $dto->createdAt,
         ], Response::HTTP_CREATED);
     }
@@ -144,6 +151,25 @@ final class ProjectController extends ApiController
             'id'          => $dto->id,
             'name'        => $dto->name,
             'description' => $dto->description,
+            'status'      => $dto->status,
+            'createdAt'   => $dto->createdAt,
+        ]);
+    }
+
+    #[Route('/{id}/toggle-status', name: 'api_project_toggle_status', methods: ['PUT'])]
+    public function toggleStatus(
+        string $id,
+        ToggleProjectStatusUseCase $useCase,
+    ): JsonResponse {
+        $response = $useCase->execute(new ToggleProjectStatusRequest($id));
+
+        $dto = $response->project();
+
+        return new JsonResponse([
+            'id'          => $dto->id,
+            'name'        => $dto->name,
+            'description' => $dto->description,
+            'status'      => $dto->status,
             'createdAt'   => $dto->createdAt,
         ]);
     }

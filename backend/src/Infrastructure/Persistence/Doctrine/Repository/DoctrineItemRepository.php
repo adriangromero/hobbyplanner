@@ -8,6 +8,7 @@ use App\Domain\Entity\Item;
 use App\Domain\Repository\ItemRepositoryInterface;
 use App\Domain\ValueObject\ItemId;
 use App\Domain\ValueObject\ProjectId;
+use App\Domain\ValueObject\UserId;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -41,6 +42,16 @@ final class DoctrineItemRepository extends ServiceEntityRepository implements It
         return $this->createQueryBuilder('i')
             ->where('i.projectId = :projectId')
             ->setParameter('projectId', $projectId->value())
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findByUser(UserId $userId): array
+    {
+        return $this->createQueryBuilder('i')
+            ->where('i.userId = :userId')
+            ->setParameter('userId', $userId->value())
+            ->orderBy('i.name', 'ASC')
             ->getQuery()
             ->getResult();
     }

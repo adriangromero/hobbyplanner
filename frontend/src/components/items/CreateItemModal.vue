@@ -97,6 +97,8 @@ async function handleCreate() {
       id:             data.id,
       name:           data.name,
       estimatedHours: data.estimatedHours,
+      status:         data.status ?? 'pending',
+      createdAt:      data.createdAt,
       totalSessions:  0,
       totalHours:     0,
       openSession:    null,

@@ -7,6 +7,7 @@ namespace App\Tests\Unit\Domain\Entity;
 use App\Domain\Entity\Item;
 use App\Domain\Exception\ValidationException;
 use App\Domain\ValueObject\ItemId;
+use App\Domain\ValueObject\ItemStatus;
 use App\Domain\ValueObject\ProjectId;
 use App\Domain\ValueObject\UserId;
 use PHPUnit\Framework\TestCase;
@@ -81,6 +82,32 @@ final class ItemTest extends TestCase
 
         $this->expectException(ValidationException::class);
         $item->updateEstimatedHours(0);
+    }
+
+    public function testDefaultStatusIsPending(): void
+    {
+        $item = $this->createItem();
+
+        $this->assertSame(ItemStatus::PENDING, $item->status());
+        $this->assertFalse($item->status()->isCompleted());
+    }
+
+    public function testMarkAsCompleted(): void
+    {
+        $item = $this->createItem();
+        $item->markAsCompleted();
+
+        $this->assertSame(ItemStatus::COMPLETED, $item->status());
+        $this->assertTrue($item->status()->isCompleted());
+    }
+
+    public function testMarkAsPendingAfterCompleted(): void
+    {
+        $item = $this->createItem();
+        $item->markAsCompleted();
+        $item->markAsPending();
+
+        $this->assertSame(ItemStatus::PENDING, $item->status());
     }
 
     public function testTimestampsAreSet(): void

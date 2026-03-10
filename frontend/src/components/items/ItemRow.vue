@@ -1,5 +1,44 @@
 <template>
-  <tr class="border-b hover:bg-gray-50">
+  <tr
+    class="border-b hover:bg-gray-50"
+    :class="{ 'opacity-50 bg-green-50': isCompleted }"
+  >
+
+    <!-- Estado -->
+    <td class="p-3">
+      <div class="flex items-center gap-2">
+        <template v-if="confirmingToggle">
+          <span class="text-xs font-medium" :class="isCompleted ? 'text-gray-600' : 'text-green-700'">
+            {{ isCompleted ? '¿Reactivar?' : '¿Completar?' }}
+          </span>
+          <button
+            @click="handleToggleStatus"
+            :disabled="loading"
+            class="text-xs bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded transition disabled:opacity-50"
+          >
+            Sí
+          </button>
+          <button
+            @click="confirmingToggle = false"
+            class="text-xs text-gray-500 hover:text-gray-700 transition"
+          >
+            No
+          </button>
+        </template>
+        <button
+          v-else
+          @click="confirmingToggle = true"
+          :disabled="loading"
+          class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors disabled:opacity-50"
+          :class="isCompleted
+            ? 'bg-green-500 border-green-500 text-white'
+            : 'border-gray-300 hover:border-green-400'"
+          :title="isCompleted ? 'Marcar como pendiente' : 'Marcar como completado'"
+        >
+          <span v-if="isCompleted" class="text-xs">&#10003;</span>
+        </button>
+      </div>
+    </td>
 
     <!-- Nombre -->
     <td class="p-3">
@@ -10,7 +49,7 @@
           class="border rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
       </div>
-      <span v-else>{{ item.name }}</span>
+      <span v-else :class="{ 'line-through text-gray-400': isCompleted }">{{ item.name }}</span>
     </td>
 
     <!-- Horas estimadas -->
@@ -35,7 +74,7 @@
         title="Ver sesiones"
       >
         <span>{{ item.totalSessions }}</span>
-        <span class="text-xs">🗂</span>
+        <span class="text-xs">&#128450;</span>
       </button>
     </td>
 
@@ -78,12 +117,12 @@
             class="text-red-600 hover:text-red-700 transition-colors disabled:opacity-50"
             title="Parar sesión"
           >
-            ⏹
+            &#9209;
           </button>
         </template>
 
-        <!-- Start con confirm inline -->
-        <template v-else-if="!editingItem && !deletingItem">
+        <!-- Start con confirm inline (solo si no está completado) -->
+        <template v-else-if="!editingItem && !deletingItem && !isCompleted">
           <template v-if="confirmingStart">
             <span class="text-xs text-green-700 font-medium">¿Iniciar?</span>
             <button
@@ -108,7 +147,7 @@
             class="transition-colors disabled:opacity-50"
             :title="anotherSessionActive ? 'Sesión activa en ' + timer.activeItemName : 'Iniciar sesión'"
           >
-            ▶
+            &#9654;
           </button>
         </template>
 
@@ -123,14 +162,14 @@
             :disabled="loading"
             class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded transition disabled:opacity-50"
           >
-            ✓
+            &#10003;
           </button>
           <button
             @click="cancelEditItem"
             :disabled="loading"
             class="text-xs text-gray-500 hover:text-gray-700 transition disabled:opacity-50"
           >
-            ✕
+            &#10005;
           </button>
         </template>
 
@@ -157,14 +196,14 @@
             class="text-blue-400 hover:text-blue-600 transition-colors"
             title="Editar item"
           >
-            ✏️
+            &#9998;&#65039;
           </button>
           <button
             @click="deletingItem = true"
             class="text-red-400 hover:text-red-600 transition-colors"
             title="Eliminar item"
           >
-            🗑️
+            &#128465;&#65039;
           </button>
         </template>
 
@@ -197,6 +236,8 @@ interface Item {
   id:             string
   name:           string
   estimatedHours: number
+  status:         'pending' | 'in_progress' | 'completed'
+  createdAt:      string
   totalSessions:  number
   totalHours:     number
   openSession:    OpenSession | null
@@ -210,8 +251,9 @@ const toast        = useToast()
 const { loading, loadingMessage, run } = useBlockingAction()
 
 // Timer
-const confirmingStart = ref(false)
-const confirmingStop  = ref(false)
+const confirmingStart  = ref(false)
+const confirmingStop   = ref(false)
+const confirmingToggle = ref(false)
 
 // Item edit/delete
 const editingItem   = ref(false)
@@ -229,6 +271,29 @@ const isActive = computed(() =>
 const anotherSessionActive = computed(() =>
   timer.isRunning && timer.activeItemId !== props.item.id
 )
+
+const isCompleted = computed(() => props.item.status === 'completed')
+
+
+// ── Status ──────────────────────────────────────────────
+
+async function handleToggleStatus() {
+  confirmingToggle.value = false
+
+  await run('Actualizando estado...', async () => {
+    try {
+      const { data } = await api.put(`/items/${props.item.id}/toggle-status`)
+      projectStore.toggleItemStatus(props.item.id, data.status)
+      toast.success(
+        data.status === 'completed'
+          ? `"${props.item.name}" completado`
+          : `"${props.item.name}" reactivado`
+      )
+    } catch {
+      toast.error('Error al cambiar el estado')
+    }
+  })
+}
 
 
 // ── Item ────────────────────────────────────────────────

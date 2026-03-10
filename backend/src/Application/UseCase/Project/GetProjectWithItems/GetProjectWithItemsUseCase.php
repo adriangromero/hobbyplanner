@@ -7,8 +7,8 @@ namespace App\Application\UseCase\Project\GetProjectWithItems;
 use App\Application\DTO\ItemDTO;
 use App\Application\DTO\ProjectDTO;
 use App\Application\DTO\WorkSessionDTO;
+use App\Application\Security\OwnershipGuard;
 use App\Domain\Entity\Item;
-use App\Domain\Entity\WorkSession;
 use App\Domain\Repository\ItemRepositoryInterface;
 use App\Domain\Repository\ProjectRepositoryInterface;
 use App\Domain\Exception\ProjectNotFoundException;
@@ -20,6 +20,7 @@ final class GetProjectWithItemsUseCase
         private readonly ProjectRepositoryInterface     $projectRepository,
         private readonly ItemRepositoryInterface        $itemRepository,
         private readonly WorkSessionRepositoryInterface $sessionRepository,
+        private readonly OwnershipGuard                 $ownershipGuard,
     ) {}
 
     public function execute(GetProjectWithItemsRequest $request): GetProjectWithItemsResponse
@@ -30,6 +31,8 @@ final class GetProjectWithItemsUseCase
         if ($project === null) {
             throw new ProjectNotFoundException($projectId->value());
         }
+
+        $this->ownershipGuard->ensureOwnership($project);
 
         $items          = $this->itemRepository->findByProject($projectId);
         $sessionsByItem = $this->sessionRepository->findGroupedByItem($projectId);

@@ -14,19 +14,22 @@ type OpenSession = {
   startedAt: string
 }
 
-type Item = {
+export type Item = {
   id:             string
   name:           string
   estimatedHours: number
+  status:         'pending' | 'in_progress' | 'completed'
+  createdAt:      string
   totalSessions:  number
   totalHours:     number
   openSession:    OpenSession | null
 }
 
-type Project = {
+export type Project = {
   id:           string
   name:         string
   description?: string
+  status:       'active' | 'completed'
   createdAt:    string
 }
 
@@ -43,6 +46,18 @@ type Estimation = {
   estimatedCompletionDate: string | null
 }
 
+export type InventoryItem = {
+  id:             string
+  name:           string
+  estimatedHours: number
+  status:         'pending' | 'in_progress' | 'completed'
+  createdAt:      string
+  totalSessions:  number
+  totalHours:     number
+  projectId:      string
+  projectName:    string
+}
+
 export const useProjectStore = defineStore('project', {
   state: () => ({
     loading:        false,
@@ -51,6 +66,7 @@ export const useProjectStore = defineStore('project', {
     currentProject: null as Project | null,
     items:          [] as Item[],
     estimation:     null as Estimation | null,
+    inventory:      [] as InventoryItem[],
   }),
 
   actions: {
@@ -87,6 +103,20 @@ export const useProjectStore = defineStore('project', {
 
       } catch (e: any) {
         this.error = e.response?.data?.error ?? 'Error al cargar proyecto'
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async loadInventory() {
+      this.loading = true
+      this.error   = null
+
+      try {
+        const { data } = await api.get('/inventory')
+        this.inventory = data.items
+      } catch (e: any) {
+        this.error = e.response?.data?.error ?? 'Error al cargar inventario'
       } finally {
         this.loading = false
       }
@@ -159,25 +189,43 @@ export const useProjectStore = defineStore('project', {
       this.projects.push(project)
     },
 
-    updateProject(updated: { id: string; name: string; description: string }) {
+    updateProject(updated: { id: string; name: string; description: string; status?: string }) {
       const project = this.projects.find((p: Project) => p.id === updated.id)
       if (!project) return
 
       project.name        = updated.name
       project.description = updated.description
+      if (updated.status) project.status = updated.status as 'active' | 'completed'
     },
 
     removeProject(projectId: string) {
       this.projects = this.projects.filter((p: Project) => p.id !== projectId)
     },
 
-    updateItem(updated: { id: string; name: string; estimatedHours: number }) {
+    updateItem(updated: { id: string; name: string; estimatedHours: number; status?: string }) {
       const item = this.items.find(i => i.id === updated.id)
       if (!item) return
 
       item.name           = updated.name
       item.estimatedHours = updated.estimatedHours
+      if (updated.status) item.status = updated.status as Item['status']
       this.refreshEstimation()
+    },
+
+    toggleItemStatus(itemId: string, newStatus: string) {
+      const item = this.items.find(i => i.id === itemId)
+      if (!item) return
+
+      item.status = newStatus as Item['status']
+      this.refreshEstimation()
+    },
+
+    toggleProjectStatus(newStatus: string) {
+      if (!this.currentProject) return
+      this.currentProject.status = newStatus as Project['status']
+
+      const project = this.projects.find(p => p.id === this.currentProject!.id)
+      if (project) project.status = newStatus as Project['status']
     },
 
     removeItem(itemId: string) {

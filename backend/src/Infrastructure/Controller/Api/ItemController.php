@@ -13,6 +13,8 @@ use App\Application\UseCase\Item\DeleteItem\DeleteItemRequest;
 use App\Application\UseCase\Item\DeleteItem\DeleteItemUseCase;
 use App\Application\UseCase\Item\GetItemSessions\GetItemSessionsRequest;
 use App\Application\UseCase\Item\GetItemSessions\GetItemSessionsUseCase;
+use App\Application\UseCase\Item\ToggleItemStatus\ToggleItemStatusRequest;
+use App\Application\UseCase\Item\ToggleItemStatus\ToggleItemStatusUseCase;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -45,6 +47,8 @@ final class ItemController extends ApiController
             'id'             => $dto->id,
             'name'           => $dto->name,
             'estimatedHours' => $dto->estimatedHours,
+            'status'         => $dto->status,
+            'createdAt'      => $dto->createdAt,
             'totalSessions'  => 0,
             'totalHours'     => 0.0,
             'openSession'    => null,
@@ -73,6 +77,23 @@ final class ItemController extends ApiController
             'id'             => $dto->id,
             'name'           => $dto->name,
             'estimatedHours' => $dto->estimatedHours,
+            'status'         => $dto->status,
+            'createdAt'      => $dto->createdAt,
+        ]);
+    }
+
+    #[Route('/{id}/toggle-status', name: 'api_item_toggle_status', methods: ['PUT'])]
+    public function toggleStatus(
+        string $id,
+        ToggleItemStatusUseCase $useCase,
+    ): JsonResponse {
+        $response = $useCase->execute(new ToggleItemStatusRequest($id));
+
+        $dto = $response->item();
+
+        return new JsonResponse([
+            'id'     => $dto->id,
+            'status' => $dto->status,
         ]);
     }
 

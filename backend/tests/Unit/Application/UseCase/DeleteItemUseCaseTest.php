@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Application\UseCase;
 
+use App\Application\Port\CurrentUserProvider;
+use App\Application\Security\OwnershipGuard;
 use App\Application\UseCase\Item\DeleteItem\DeleteItemRequest;
 use App\Application\UseCase\Item\DeleteItem\DeleteItemUseCase;
 use App\Domain\Entity\Item;
+use App\Domain\Exception\AccessDeniedException;
 use App\Domain\Exception\ItemNotFoundException;
 use App\Domain\Repository\ItemRepositoryInterface;
 use App\Domain\Repository\WorkSessionRepositoryInterface;
@@ -20,23 +23,29 @@ final class DeleteItemUseCaseTest extends TestCase
 {
     private ItemRepositoryInterface&MockObject $itemRepository;
     private WorkSessionRepositoryInterface&MockObject $sessionRepository;
+    private CurrentUserProvider&MockObject $currentUserProvider;
     private DeleteItemUseCase $useCase;
 
     protected function setUp(): void
     {
-        $this->itemRepository    = $this->createMock(ItemRepositoryInterface::class);
-        $this->sessionRepository = $this->createMock(WorkSessionRepositoryInterface::class);
-        $this->useCase           = new DeleteItemUseCase($this->itemRepository, $this->sessionRepository);
+        $this->itemRepository      = $this->createMock(ItemRepositoryInterface::class);
+        $this->sessionRepository   = $this->createMock(WorkSessionRepositoryInterface::class);
+        $this->currentUserProvider = $this->createMock(CurrentUserProvider::class);
+        $this->useCase             = new DeleteItemUseCase(
+            $this->itemRepository,
+            $this->sessionRepository,
+            new OwnershipGuard($this->currentUserProvider),
+        );
     }
 
     public function testDeletesSessionsBeforeItem(): void
     {
+        $userId = UserId::create();
         $itemId = ItemId::create();
-        $item   = new Item($itemId, ProjectId::create(), UserId::create(), 'Item', 5.0);
+        $item   = new Item($itemId, ProjectId::create(), $userId, 'Item', 5.0);
 
-        $this->itemRepository
-            ->method('findById')
-            ->willReturn($item);
+        $this->currentUserProvider->method('currentUserId')->willReturn($userId);
+        $this->itemRepository->method('findById')->willReturn($item);
 
         $callOrder = [];
 
@@ -57,12 +66,25 @@ final class DeleteItemUseCaseTest extends TestCase
 
     public function testItemNotFoundThrows(): void
     {
-        $this->itemRepository
-            ->method('findById')
-            ->willReturn(null);
+        $this->itemRepository->method('findById')->willReturn(null);
 
         $this->expectException(ItemNotFoundException::class);
 
         $this->useCase->execute(new DeleteItemRequest(ItemId::create()->value()));
+    }
+
+    public function testDeniesAccessWhenUserDoesNotOwnItem(): void
+    {
+        $ownerId = UserId::create();
+        $otherId = UserId::create();
+        $itemId  = ItemId::create();
+        $item    = new Item($itemId, ProjectId::create(), $ownerId, 'Item', 5.0);
+
+        $this->currentUserProvider->method('currentUserId')->willReturn($otherId);
+        $this->itemRepository->method('findById')->willReturn($item);
+
+        $this->expectException(AccessDeniedException::class);
+
+        $this->useCase->execute(new DeleteItemRequest($itemId->value()));
     }
 }

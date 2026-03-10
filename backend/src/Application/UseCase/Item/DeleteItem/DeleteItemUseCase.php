@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\UseCase\Item\DeleteItem;
 
+use App\Application\Security\OwnershipGuard;
 use App\Domain\Exception\ItemNotFoundException;
 use App\Domain\Repository\ItemRepositoryInterface;
 use App\Domain\Repository\WorkSessionRepositoryInterface;
@@ -13,6 +14,7 @@ final class DeleteItemUseCase
     public function __construct(
         private readonly ItemRepositoryInterface        $itemRepository,
         private readonly WorkSessionRepositoryInterface $sessionRepository,
+        private readonly OwnershipGuard                 $ownershipGuard,
     ) {}
 
     public function execute(DeleteItemRequest $request): void
@@ -22,6 +24,8 @@ final class DeleteItemUseCase
         if ($item === null) {
             throw new ItemNotFoundException($request->itemId()->value());
         }
+
+        $this->ownershipGuard->ensureOwnership($item);
 
         $this->sessionRepository->deleteByItem($request->itemId());
         $this->itemRepository->delete($item);

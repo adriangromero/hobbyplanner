@@ -2,13 +2,22 @@
   <div
     @click="handleCardClick"
     class="p-4 bg-white rounded-lg shadow-sm border hover:shadow-md cursor-pointer transition"
+    :class="{ 'border-green-200 bg-green-50/50': project.status === 'completed' }"
   >
 
     <!-- Vista normal -->
     <template v-if="!editingProject && !deletingProject">
       <div class="flex justify-between items-start">
         <div class="flex-1 min-w-0">
-          <h2 class="text-xl font-semibold">{{ project.name }}</h2>
+          <div class="flex items-center gap-2">
+            <h2 class="text-xl font-semibold">{{ project.name }}</h2>
+            <span
+              v-if="project.status === 'completed'"
+              class="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700"
+            >
+              Completado
+            </span>
+          </div>
           <p class="text-gray-600 text-sm">{{ project.description || 'Sin descripción' }}</p>
           <p class="text-gray-400 text-xs mt-1">{{ formatDate(project.createdAt) }}</p>
         </div>
@@ -112,6 +121,7 @@ interface Project {
   id:           string
   name:         string
   description?: string
+  status:       'active' | 'completed'
   createdAt:    string
 }
 

@@ -25,11 +25,11 @@ final class ProjectEstimatorTest extends TestCase
 
     public function testNoSessionsReturnsZeroVelocity(): void
     {
-        $items = [$this->createItem(10.0)];
+        $item = $this->createItem(10.0);
 
         $estimation = $this->estimator->estimate(
             new DateTimeImmutable('-7 days'),
-            $items,
+            [$item],
             [],
         );
 
@@ -43,13 +43,16 @@ final class ProjectEstimatorTest extends TestCase
 
     public function testSingleDaySession(): void
     {
-        $projectStart = new DateTimeImmutable('-7 days');
-        $items    = [$this->createItem(10.0)];
+        $item     = $this->createItem(10.0);
         $sessions = [
-            $this->createClosedSession('2026-03-01 10:00:00', '2026-03-01 12:00:00'),
+            $this->sessionForItem($item, '2026-03-01 10:00:00', '2026-03-01 12:00:00'),
         ];
 
-        $estimation = $this->estimator->estimate($projectStart, $items, $sessions);
+        $estimation = $this->estimator->estimate(
+            new DateTimeImmutable('-7 days'),
+            [$item],
+            $sessions,
+        );
 
         $this->assertSame(10.0, $estimation->estimatedHours());
         $this->assertSame(2.0, $estimation->workedHours());
@@ -61,15 +64,18 @@ final class ProjectEstimatorTest extends TestCase
 
     public function testMultipleDaysSessions(): void
     {
-        $projectStart = new DateTimeImmutable('-14 days');
-        $items    = [$this->createItem(20.0)];
+        $item     = $this->createItem(20.0);
         $sessions = [
-            $this->createClosedSession('2026-02-20 10:00:00', '2026-02-20 14:00:00'),
-            $this->createClosedSession('2026-02-22 09:00:00', '2026-02-22 13:00:00'),
-            $this->createClosedSession('2026-02-24 10:00:00', '2026-02-24 12:00:00'),
+            $this->sessionForItem($item, '2026-02-20 10:00:00', '2026-02-20 14:00:00'),
+            $this->sessionForItem($item, '2026-02-22 09:00:00', '2026-02-22 13:00:00'),
+            $this->sessionForItem($item, '2026-02-24 10:00:00', '2026-02-24 12:00:00'),
         ];
 
-        $estimation = $this->estimator->estimate($projectStart, $items, $sessions);
+        $estimation = $this->estimator->estimate(
+            new DateTimeImmutable('-14 days'),
+            [$item],
+            $sessions,
+        );
 
         $this->assertSame(20.0, $estimation->estimatedHours());
         $this->assertEqualsWithDelta(10.0, $estimation->workedHours(), 0.01);
@@ -77,16 +83,16 @@ final class ProjectEstimatorTest extends TestCase
         $this->assertSame(3, $estimation->activeDays());
     }
 
-    public function testCompletedProjectHasZeroRemaining(): void
+    public function testWorkedMoreThanEstimatedClamsToZeroRemaining(): void
     {
-        $items    = [$this->createItem(2.0)];
+        $item     = $this->createItem(2.0);
         $sessions = [
-            $this->createClosedSession('2026-03-01 10:00:00', '2026-03-01 13:00:00'),
+            $this->sessionForItem($item, '2026-03-01 10:00:00', '2026-03-01 13:00:00'),
         ];
 
         $estimation = $this->estimator->estimate(
             new DateTimeImmutable('-7 days'),
-            $items,
+            [$item],
             $sessions,
         );
 
@@ -95,11 +101,11 @@ final class ProjectEstimatorTest extends TestCase
 
     public function testOpenSessionIsIgnored(): void
     {
-        $items = [$this->createItem(10.0)];
+        $item = $this->createItem(10.0);
         $openSession = new WorkSession(
             WorkSessionId::create(),
             ProjectId::create(),
-            ItemId::create(),
+            $item->id(),
             UserId::create(),
             new DateTimeImmutable(),
             null,
@@ -107,13 +113,65 @@ final class ProjectEstimatorTest extends TestCase
 
         $estimation = $this->estimator->estimate(
             new DateTimeImmutable('-7 days'),
-            $items,
+            [$item],
             [$openSession],
         );
 
         $this->assertSame(0.0, $estimation->workedHours());
         $this->assertSame(0, $estimation->activeDays());
     }
+
+    public function testCompletedItemsDoNotCountAsRemaining(): void
+    {
+        // 2 items: pendingItem (8h) + completedItem (5h)
+        // 2h worked on pending, 3h worked on completed
+        $pendingItem   = $this->createItem(8.0);
+        $completedItem = $this->createItem(5.0);
+        $completedItem->markAsCompleted();
+
+        $sessions = [
+            $this->sessionForItem($pendingItem,   '2026-03-01 10:00:00', '2026-03-01 12:00:00'), // 2h
+            $this->sessionForItem($completedItem, '2026-03-02 10:00:00', '2026-03-02 13:00:00'), // 3h
+        ];
+
+        $estimation = $this->estimator->estimate(
+            new DateTimeImmutable('-14 days'),
+            [$pendingItem, $completedItem],
+            $sessions,
+        );
+
+        // Total estimated = 8 + 5 = 13h (shows full project scope)
+        $this->assertSame(13.0, $estimation->estimatedHours());
+        // Total worked = 2 + 3 = 5h (all sessions count for velocity)
+        $this->assertSame(5.0, $estimation->workedHours());
+        // Remaining = pending estimated (8) - pending worked (2) = 6h
+        // NOT 13 - 5 - 5 = 3h (old buggy formula)
+        $this->assertSame(6.0, $estimation->remainingHours());
+        // Velocity uses total worked hours / active days
+        $this->assertEqualsWithDelta(2.5, $estimation->velocityPerActiveDay(), 0.01);
+    }
+
+    public function testAllItemsCompletedMeansZeroRemaining(): void
+    {
+        $item = $this->createItem(10.0);
+        $item->markAsCompleted();
+
+        $sessions = [
+            $this->sessionForItem($item, '2026-03-01 10:00:00', '2026-03-01 13:00:00'),
+        ];
+
+        $estimation = $this->estimator->estimate(
+            new DateTimeImmutable('-7 days'),
+            [$item],
+            $sessions,
+        );
+
+        $this->assertSame(10.0, $estimation->estimatedHours());
+        $this->assertSame(3.0, $estimation->workedHours());
+        $this->assertSame(0.0, $estimation->remainingHours());
+    }
+
+    // ── Helpers ──────────────────────────────────────────────
 
     private function createItem(float $hours): Item
     {
@@ -126,13 +184,13 @@ final class ProjectEstimatorTest extends TestCase
         );
     }
 
-    private function createClosedSession(string $start, string $end): WorkSession
+    private function sessionForItem(Item $item, string $start, string $end): WorkSession
     {
         return new WorkSession(
             WorkSessionId::create(),
-            ProjectId::create(),
-            ItemId::create(),
-            UserId::create(),
+            $item->projectId(),
+            $item->id(),
+            $item->userId(),
             new DateTimeImmutable($start),
             new DateTimeImmutable($end),
         );

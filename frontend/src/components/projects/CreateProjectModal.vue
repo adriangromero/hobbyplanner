@@ -94,6 +94,7 @@ async function handleCreate() {
       id:             data.id,
       name:           data.name,
       description:    data.description,
+      status:         data.status ?? 'active',
       createdAt:      data.createdAt,
     })
 

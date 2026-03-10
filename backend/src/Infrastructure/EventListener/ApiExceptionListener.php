@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\EventListener;
 
+use App\Domain\Exception\AccessDeniedException;
 use App\Domain\Exception\ActiveSessionExistsException;
 use App\Domain\Exception\DomainException;
 use App\Domain\Exception\InvalidCredentialsException;
@@ -49,6 +50,7 @@ final class ApiExceptionListener implements EventSubscriberInterface
     private function resolveStatusCode(DomainException $exception): int
     {
         return match (true) {
+            $exception instanceof AccessDeniedException         => Response::HTTP_FORBIDDEN,
             $exception instanceof NotFoundException            => Response::HTTP_NOT_FOUND,
             $exception instanceof InvalidCredentialsException   => Response::HTTP_UNAUTHORIZED,
             $exception instanceof UserAlreadyExistsException    => Response::HTTP_CONFLICT,

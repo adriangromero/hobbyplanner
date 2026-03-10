@@ -5,18 +5,21 @@ declare(strict_types=1);
 namespace App\Domain\Entity;
 
 use App\Domain\Exception\ValidationException;
+use App\Domain\Security\OwnableResource;
 use App\Domain\ValueObject\ItemId;
+use App\Domain\ValueObject\ItemStatus;
 use App\Domain\ValueObject\UserId;
 use App\Domain\ValueObject\ProjectId;
 use DateTimeImmutable;
 
-final class Item
+final class Item implements OwnableResource
 {
     private ItemId            $id;
     private ProjectId         $projectId;
     private UserId            $userId;
     private string            $name;
     private float             $estimatedHours;
+    private string            $status;
     private DateTimeImmutable $createdAt;
     private DateTimeImmutable $updatedAt;
 
@@ -30,6 +33,7 @@ final class Item
         $this->id        = $id;
         $this->projectId = $projectId;
         $this->userId    = $userId;
+        $this->status    = ItemStatus::PENDING->value;
         $this->createdAt = new DateTimeImmutable();
         $this->updatedAt = new DateTimeImmutable();
 
@@ -41,8 +45,10 @@ final class Item
     public function id(): ItemId                  { return $this->id; }
     public function projectId(): ProjectId         { return $this->projectId; }
     public function userId(): UserId               { return $this->userId; }
+    public function ownerId(): UserId              { return $this->userId; }
     public function name(): string                 { return $this->name; }
     public function estimatedHours(): float        { return $this->estimatedHours; }
+    public function status(): ItemStatus           { return ItemStatus::from($this->status); }
     public function createdAt(): DateTimeImmutable { return $this->createdAt; }
     public function updatedAt(): DateTimeImmutable { return $this->updatedAt; }
 
@@ -70,5 +76,23 @@ final class Item
 
         $this->estimatedHours = $hours;
         $this->updatedAt      = new DateTimeImmutable();
+    }
+
+    public function markAsCompleted(): void
+    {
+        $this->status    = ItemStatus::COMPLETED->value;
+        $this->updatedAt = new DateTimeImmutable();
+    }
+
+    public function markAsInProgress(): void
+    {
+        $this->status    = ItemStatus::IN_PROGRESS->value;
+        $this->updatedAt = new DateTimeImmutable();
+    }
+
+    public function markAsPending(): void
+    {
+        $this->status    = ItemStatus::PENDING->value;
+        $this->updatedAt = new DateTimeImmutable();
     }
 }

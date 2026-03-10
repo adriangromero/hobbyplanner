@@ -5,16 +5,19 @@ declare(strict_types=1);
 namespace App\Domain\Entity;
 
 use App\Domain\Exception\ValidationException;
+use App\Domain\Security\OwnableResource;
 use App\Domain\ValueObject\ProjectId;
+use App\Domain\ValueObject\ProjectStatus;
 use App\Domain\ValueObject\UserId;
 use DateTimeImmutable;
 
-final class Project
+final class Project implements OwnableResource
 {
     private ProjectId $id;
     private UserId $userId;
     private string $name;
     private string $description;
+    private string $status;
     private DateTimeImmutable $createdAt;
     private DateTimeImmutable $updatedAt;
 
@@ -22,6 +25,7 @@ final class Project
     {
         $this->id        = $id;
         $this->userId    = $userId;
+        $this->status    = ProjectStatus::ACTIVE->value;
         $this->createdAt = new DateTimeImmutable();
         $this->updatedAt = new DateTimeImmutable();
 
@@ -45,33 +49,24 @@ final class Project
         $this->updatedAt   = new DateTimeImmutable();
     }
 
-    public function id(): ProjectId
+    public function markAsCompleted(): void
     {
-        return $this->id;
+        $this->status    = ProjectStatus::COMPLETED->value;
+        $this->updatedAt = new DateTimeImmutable();
     }
 
-    public function userId(): UserId
+    public function markAsActive(): void
     {
-        return $this->userId;
+        $this->status    = ProjectStatus::ACTIVE->value;
+        $this->updatedAt = new DateTimeImmutable();
     }
 
-    public function name(): string
-    {
-        return $this->name;
-    }
-
-    public function description(): string
-    {
-        return $this->description;
-    }
-
-    public function createdAt(): DateTimeImmutable
-    {
-        return $this->createdAt;
-    }
-    
-    public function updatedAt(): DateTimeImmutable
-    {
-        return $this->updatedAt;
-    }
+    public function id(): ProjectId              { return $this->id; }
+    public function userId(): UserId             { return $this->userId; }
+    public function ownerId(): UserId            { return $this->userId; }
+    public function name(): string               { return $this->name; }
+    public function description(): string        { return $this->description; }
+    public function status(): ProjectStatus      { return ProjectStatus::from($this->status); }
+    public function createdAt(): DateTimeImmutable { return $this->createdAt; }
+    public function updatedAt(): DateTimeImmutable { return $this->updatedAt; }
 }

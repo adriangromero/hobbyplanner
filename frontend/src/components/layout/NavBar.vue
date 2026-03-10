@@ -11,13 +11,20 @@
             </div>
             <span class="font-bold text-xl text-gray-900 hidden sm:block">HobbyPlanner</span>
           </router-link>
-          <div class="hidden md:flex items-center gap-1 pl-10">
+          <div class="hidden md:flex items-center gap-3 pl-10">
             <router-link
               to="/projects"
               class="text-xs font-medium text-gray-500 hover:text-blue-600 transition-colors"
               active-class="text-blue-600"
             >
               Proyectos
+            </router-link>
+            <router-link
+              to="/inventory"
+              class="text-xs font-medium text-gray-500 hover:text-blue-600 transition-colors"
+              active-class="text-blue-600"
+            >
+              Inventario
             </router-link>
           </div>
         </div>
@@ -157,7 +164,8 @@ const vClickOutside = {
       }
     }
     ;(el as any)._clickOutside = handler
-    document.addEventListener('click', handler)
+    // Defer so the current click event doesn't immediately trigger the handler
+    setTimeout(() => document.addEventListener('click', handler), 0)
   },
   unmounted(el: HTMLElement) {
     const handler = (el as any)._clickOutside

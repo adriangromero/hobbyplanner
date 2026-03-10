@@ -13,6 +13,7 @@
     <table class="w-full bg-white rounded-lg shadow-sm border">
       <thead class="bg-gray-100 text-left">
         <tr>
+          <th class="p-3 w-10"></th>
           <th class="p-3">Nombre</th>
           <th class="p-3">Estimadas</th>
           <th class="p-3">Sesiones</th>
@@ -27,7 +28,7 @@
           :item="item"
         />
         <tr v-if="items.length === 0">
-          <td colspan="5" class="p-6 text-center text-gray-400 text-sm">
+          <td colspan="6" class="p-6 text-center text-gray-400 text-sm">
             Aún no hay items. Añade uno para empezar.
           </td>
         </tr>
@@ -50,6 +51,8 @@ interface Item {
   id:             string
   name:           string
   estimatedHours: number
+  status:         'pending' | 'in_progress' | 'completed'
+  createdAt:      string
   totalSessions:  number
   totalHours:     number
   openSession:    { id: string; startedAt: string } | null
