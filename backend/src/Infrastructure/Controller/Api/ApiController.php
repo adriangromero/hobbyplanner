@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Controller\Api;
 
 use App\Domain\Entity\User;
+use App\Domain\Exception\AuthenticationException;
 use App\Domain\Exception\ValidationException;
 use App\Domain\Repository\UserRepositoryInterface;
 use App\Domain\ValueObject\Email;
@@ -23,7 +24,7 @@ abstract class ApiController extends SymfonyAbstractController
         );
 
         if ($user === null) {
-            throw new \RuntimeException('Authenticated user not found in database');
+            throw new AuthenticationException('Authenticated user not found in database');
         }
 
         return $user;

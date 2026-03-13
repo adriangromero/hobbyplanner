@@ -50,6 +50,114 @@ frontend/src/
   router/       <- Vue Router con rutas protegidas
 ```
 
+### Diagrama de flujo de una peticion completa
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              FRONTEND (Vue 3)                               │
+│                                                                             │
+│  1. Usuario pulsa boton                                                     │
+│  2. Componente llama al Store (Pinia)                                       │
+│  3. Store llama a Axios                                                     │
+│  4. Axios interceptor añade JWT en Authorization header                     │
+│  5. Axios envia HTTP request al backend                                     │
+└────────────────────────────────────┬────────────────────────────────────────┘
+                                     │ HTTP Request + Bearer Token
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         INFRASTRUCTURE LAYER                                │
+│                                                                             │
+│  ┌──────────────────┐    ┌────────────────────┐                             │
+│  │ Symfony Security  │    │ Controller         │                             │
+│  │                  │    │                    │                             │
+│  │ 1. Valida JWT    │───→│ 1. Extrae datos    │                             │
+│  │ 2. Carga User    │    │    del Request     │                             │
+│  │ 3. Verifica ROLE │    │ 2. getCurrentUser()│                             │
+│  └──────────────────┘    │ 3. Crea XXXRequest │                             │
+│                          │ 4. Llama UseCase   │                             │
+│                          │ 5. DTO → JSON      │                             │
+│                          └─────────┬──────────┘                             │
+└────────────────────────────────────┼────────────────────────────────────────┘
+                                     │ XXXRequest (objeto tipado)
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          APPLICATION LAYER                                  │
+│                                                                             │
+│  ┌──────────────────────────────────────────────┐                           │
+│  │ UseCase                                       │                          │
+│  │                                               │                          │
+│  │ 1. Busca entidad en Repository (interfaz)     │                          │
+│  │ 2. OwnershipGuard.ensureOwnership()           │                          │
+│  │    └→ CurrentUserProvider.currentUserId()     │                          │
+│  │       (Port → obtiene userId del JWT)         │                          │
+│  │ 3. Ejecuta logica de negocio                  │                          │
+│  │ 4. Llama Repository.save/delete (interfaz)    │                          │
+│  │ 5. Devuelve XXXResponse con DTO               │                          │
+│  └──────────────────────────────────────────────┘                           │
+│                                                                             │
+└────────────────────────────┬───────────┬────────────────────────────────────┘
+                             │           │
+              Usa interfaces │           │ Usa Value Objects
+                             ▼           ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            DOMAIN LAYER                                     │
+│                                                                             │
+│  Entities: User, Project, Item, WorkSession                                 │
+│  Value Objects: ProjectId, ItemId, UserId, Email, ItemStatus, ProjectStatus │
+│  Repository Interfaces: ProjectRepositoryInterface, etc.                    │
+│  Exceptions: NotFoundException, AccessDeniedException, etc.                 │
+│  Services: ProjectEstimator                                                 │
+│  Security: OwnableResource (interfaz)                                       │
+│                                                                             │
+│  ★ NO depende de NADA externo. Ni Symfony, ni Doctrine, ni HTTP.            │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Ejemplo concreto: Crear un Item
+
+```
+Vue: CreateItemModal.handleCreate()
+  │
+  ▼
+Pinia: projectStore.addItem(name, projectId, hours)
+  │
+  ▼
+Axios: POST /api/items {name, projectId, estimatedHours}
+  │  + Header: Authorization: Bearer eyJhbGciOi...
+  │
+  ▼
+Symfony Security: valida JWT → OK, es ROLE_USER
+  │
+  ▼
+ItemController.create(Request $request)
+  │  $data = json_decode($request->getContent())
+  │  $user = $this->getCurrentUser()
+  │  validateRequired($data, ['name', 'projectId', 'estimatedHours'])
+  │
+  ▼
+CreateItemUseCase.execute(CreateItemRequest)
+  │  → Crea Item entity con Value Objects (ItemId, ProjectId, UserId)
+  │  → itemRepository->save($item)     ← interfaz Domain
+  │  → return CreateItemResponse(ItemDTO::fromEntity($item))
+  │
+  ▼
+DoctrineItemRepository.save($item)   ← implementacion Infrastructure
+  │  → $this->getEntityManager()->persist($item)
+  │  → $this->getEntityManager()->flush()
+  │
+  ▼
+MySQL: INSERT INTO items (id, project_id, user_id, name, estimated_hours, status, ...)
+  │
+  ▼
+Controller: return new JsonResponse({id, name, status, ...}, 201)
+  │
+  ▼
+Axios: response.data → projectStore actualiza estado local
+  │
+  ▼
+Vue: reactivamente muestra el nuevo item en la tabla
+```
+
 ---
 
 ## 2. Domain Layer
@@ -159,6 +267,8 @@ DomainException (abstracta, code 400)
   ├── ValidationException (code 422)
   │     ├── InvalidEmailException
   │     └── UserAlreadyExistsException
+  ├── AuthenticationException (code 401)
+  ├── AccessDeniedException (code 403)
   ├── InvalidCredentialsException (code 401)
   └── ActiveSessionExistsException (code 409)
 ```
@@ -348,19 +458,32 @@ Convierten Value Objects a/desde la base de datos:
 
 ### 4.4 ApiExceptionListener
 
-Captura excepciones de dominio y las convierte en respuestas HTTP:
+Captura excepciones de dominio en rutas `/api` y las convierte en respuestas HTTP con el codigo correcto:
 
 ```php
 public function onKernelException(ExceptionEvent $event): void
 {
     $exception = $event->getThrowable();
 
-    if ($exception instanceof DomainException) {
-        $event->setResponse(new JsonResponse(
-            ['error' => $exception->getMessage()],
-            $exception->getCode(),
-        ));
+    if (!$exception instanceof DomainException) {
+        return; // Symfony maneja las demas (500)
     }
+
+    $statusCode = match (true) {
+        $exception instanceof AuthenticationException    => 401,
+        $exception instanceof AccessDeniedException      => 403,
+        $exception instanceof NotFoundException          => 404,
+        $exception instanceof InvalidCredentialsException => 401,
+        $exception instanceof UserAlreadyExistsException => 409,
+        $exception instanceof ActiveSessionExistsException => 409,
+        $exception instanceof ValidationException        => 422,
+        default                                          => 400,
+    };
+
+    $event->setResponse(new JsonResponse(
+        ['error' => $exception->getMessage()],
+        $statusCode,
+    ));
 }
 ```
 
@@ -585,14 +708,227 @@ src/__tests__/
 
 ---
 
-## 8. Seguridad
+## 8. Seguridad — Autenticacion, Autorizacion y Ownership
+
+### 8.1 Vision general — Tres capas de seguridad
+
+El proyecto tiene 3 niveles de seguridad que trabajan juntos:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  NIVEL 1: AUTENTICACION (JWT)                                       │
+│  "¿Quien eres?"                                                     │
+│  Symfony Security + Lexik JWT Bundle                                │
+│  → Si no tienes token valido: HTTP 401                              │
+├─────────────────────────────────────────────────────────────────────┤
+│  NIVEL 2: AUTORIZACION (Roles)                                      │
+│  "¿Puedes acceder a esta ruta?"                                     │
+│  security.yaml → access_control                                     │
+│  → /api/auth/* es PUBLIC_ACCESS, todo lo demas requiere ROLE_USER   │
+├─────────────────────────────────────────────────────────────────────┤
+│  NIVEL 3: OWNERSHIP (OwnershipGuard)                                │
+│  "¿Este recurso es tuyo?"                                           │
+│  OwnershipGuard en los Use Cases                                    │
+│  → Si el recurso no es tuyo: HTTP 403                               │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 8.2 Flujo completo de LOGIN
+
+```
+┌──────────┐       POST /api/auth/login         ┌──────────────┐
+│ Frontend │  ──────{email, password}──────────→ │ AuthController│
+│ (Vue)    │                                     └──────┬───────┘
+└──────────┘                                            │
+                                                        ▼
+                                                ┌───────────────┐
+                                                │ LoginUseCase  │
+                                                │               │
+                                                │ 1. findByEmail│
+                                                │ 2. verify pwd │
+                                                │ 3. create JWT │
+                                                └───────┬───────┘
+                                                        │
+                         {token, user}                  │
+┌──────────┐  ◄─────────────────────────────────────────┘
+│ Frontend │
+│          │  authStore.login():
+│          │    1. Guarda token en localStorage
+│          │    2. Guarda user en Pinia state
+│          │    3. Redirige a /projects
+└──────────┘
+```
+
+**¿Que contiene el JWT?** El email del usuario. Lexik lo firma con la clave privada RSA (`config/jwt/private.pem`). TTL: 3600 segundos (1 hora).
+
+### 8.3 Flujo de una PETICION AUTENTICADA
+
+```
+┌──────────┐  GET /api/projects/123              ┌─────────────────────┐
+│ Frontend │  ─────────────────────────────────→ │ SYMFONY SECURITY    │
+│          │  Header: Authorization: Bearer xxx   │ (automatico)        │
+└──────────┘                                     │                     │
+                                                 │ 1. Lee el header    │
+      ┌──────────────────────────────────────────│ 2. Decodifica JWT   │
+      │ Si token invalido/expirado → HTTP 401    │ 3. Verifica firma   │
+      │                                          │ 4. Extrae email     │
+      │                                          │ 5. Carga User       │
+      │                                          │ 6. Verifica ROLE    │
+      │                                          └─────────┬───────────┘
+      │                                                    │ Token valido
+      │                                                    ▼
+      │                                          ┌─────────────────────┐
+      │                                          │ ProjectController   │
+      │                                          │                     │
+      │                                          │ getCurrentUser():   │
+      │                                          │   getUser()         │
+      │                                          │   → email del JWT   │
+      │                                          │   → findByEmail()   │
+      │                                          │   → User entity     │
+      │                                          └─────────┬───────────┘
+      │                                                    │
+      │                                                    ▼
+      │                                          ┌─────────────────────┐
+      │                                          │ GetProjectUseCase   │
+      │                                          │                     │
+      │                                          │ 1. findById(123)    │
+      │                                          │ 2. ownershipGuard   │
+      │                                          │    .ensureOwnership │
+      │                                          │ 3. return DTO       │
+      │                                          └─────────────────────┘
+      │
+      │  ¿Y como sabe Axios que tiene que enviar el token?
+      │
+      │  axios.ts → interceptor de REQUEST:
+      │    const token = localStorage.getItem('jwt_token')
+      │    config.headers.Authorization = `Bearer ${token}`
+      │
+      │  axios.ts → interceptor de RESPONSE:
+      │    if (status === 401) → borrar token → redirect /login
+      │
+      └──────────────────────────────────────────────────────────────────
+```
+
+### 8.4 OwnershipGuard — ¿Como funciona?
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                     OwnershipGuard                                │
+│                  (Application Layer)                              │
+│                                                                  │
+│  ensureOwnership(OwnableResource $resource):                     │
+│    │                                                             │
+│    ├── currentUserProvider.currentUserId()                        │
+│    │     │                                                       │
+│    │     └── SymfonyCurrentUserProvider (Infrastructure)          │
+│    │           │                                                 │
+│    │           ├── security.getUser() → email del JWT             │
+│    │           └── userRepository.findByEmail() → UserId          │
+│    │                                                             │
+│    ├── $resource.ownerId()                                        │
+│    │     │                                                       │
+│    │     └── La entidad (Project/Item/WorkSession)                │
+│    │         devuelve su userId                                  │
+│    │                                                             │
+│    └── ¿Son iguales?                                              │
+│          ├── SI → continua la ejecucion                           │
+│          └── NO → throw AccessDeniedException (HTTP 403)          │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**¿Donde se usa?** En TODO caso de uso que opera sobre un recurso existente:
+
+| Use Case | ¿Usa OwnershipGuard? | ¿Por que? |
+|----------|---------------------|-----------|
+| CreateItem | NO | No hay recurso existente, se crea nuevo |
+| CreateProject | NO | No hay recurso existente, se crea nuevo |
+| UpdateItem | SI | Verificar que el item es tuyo |
+| DeleteItem | SI | Verificar que el item es tuyo |
+| ToggleItemStatus | SI | Verificar que el item es tuyo |
+| GetItemSessions | SI | Verificar que el item es tuyo |
+| UpdateProject | SI | Verificar que el proyecto es tuyo |
+| DeleteProject | SI | Verificar que el proyecto es tuyo |
+| GetProjectWithItems | SI | Verificar que el proyecto es tuyo |
+| GetProjectEstimation | SI | Verificar que el proyecto es tuyo |
+| ToggleProjectStatus | SI | Verificar que el proyecto es tuyo |
+| StartWorkSession | SI | Verificar que el item es tuyo |
+| FinishWorkSession | SI | Verificar que la sesion es tuya |
+| UpdateWorkSession | SI | Verificar que la sesion es tuya |
+| DeleteWorkSession | SI | Verificar que la sesion es tuya |
+| ListProjects | NO | findByUser() ya filtra por usuario |
+| ListInventory | NO | findByUser() ya filtra por usuario |
+
+**Clave**: Los List no necesitan Guard porque el repositorio ya filtra por userId — imposible ver datos de otro usuario.
+
+### 8.5 Interfaces que hacen posible la seguridad
+
+```
+┌── Domain ──────────────────────────────────────────────────────────┐
+│                                                                    │
+│  interface OwnableResource {                                       │
+│      public function ownerId(): UserId;                            │
+│  }                                                                 │
+│                                                                    │
+│  Project implements OwnableResource  → return $this->userId        │
+│  Item implements OwnableResource     → return $this->userId        │
+│  WorkSession implements OwnableResource → return $this->userId     │
+│                                                                    │
+└────────────────────────────────────────────────────────────────────┘
+
+┌── Application ─────────────────────────────────────────────────────┐
+│                                                                    │
+│  interface CurrentUserProvider {        (PORT)                      │
+│      public function currentUserId(): UserId;                      │
+│  }                                                                 │
+│                                                                    │
+│  class OwnershipGuard {                                            │
+│      constructor(CurrentUserProvider $provider)                     │
+│      ensureOwnership(OwnableResource $resource): void              │
+│  }                                                                 │
+│                                                                    │
+└────────────────────────────────────────────────────────────────────┘
+
+┌── Infrastructure ──────────────────────────────────────────────────┐
+│                                                                    │
+│  class SymfonyCurrentUserProvider implements CurrentUserProvider    │
+│      (ADAPTER)                                                     │
+│      → Usa Symfony Security para leer el JWT                       │
+│      → Busca el User en BD por email                               │
+│      → Devuelve su UserId                                          │
+│                                                                    │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+### 8.6 ¿Es este patron SIEMPRE asi en DDD/Hexagonal/SOLID?
+
+**SI, esta es la forma canonica**. Los conceptos son reutilizables en cualquier proyecto:
+
+| Concepto | En este proyecto | En cualquier proyecto DDD |
+|----------|-----------------|--------------------------|
+| Autenticacion separada de autorizacion | JWT (autenticacion) vs OwnershipGuard (autorizacion) | Siempre. Son responsabilidades distintas (S de SOLID) |
+| Port & Adapter para el usuario actual | `CurrentUserProvider` (port) + `SymfonyCurrentUserProvider` (adapter) | Siempre. Permite cambiar de JWT a OAuth, SAML, etc. sin tocar los Use Cases (D de SOLID) |
+| Interfaz OwnableResource | Entities implementan `ownerId()` | Comun. Permite un guard generico para cualquier entidad (O de SOLID) |
+| Guard en Application, no en Controller | OwnershipGuard vive en Application | Siempre. La seguridad de negocio es logica de negocio, no de HTTP |
+| Excepciones de dominio mapeadas a HTTP | `AccessDeniedException` → 403 via Listener | Siempre. El dominio no conoce HTTP, el listener traduce |
+| Repositorios filtran por usuario | `findByUser(UserId)` | Siempre. Nunca `findAll()` sin filtro de seguridad |
+
+**¿Que cambiaria en otro proyecto?**
+- El adapter: en vez de JWT podria ser OAuth2, API Keys, sessions...
+- Las entidades: otro dominio, otros recursos
+- Los nombres: pero la estructura PORT → ADAPTER → GUARD es la misma
+
+### 8.7 Resumen de seguridad
 
 - **JWT**: token en `localStorage`, enviado via `Authorization: Bearer` header
-- **401 interceptor**: redirige a `/login` y limpia el token automaticamente
+- **Interceptores Axios**: el de request añade el token automaticamente; el de response redirige a /login en 401
+- **Firewall Symfony**: valida el JWT antes de que llegue al controller
+- **Rutas publicas**: solo `/api/auth/login` y `/api/auth/register`
+- **OwnershipGuard**: verifica que el recurso pertenece al usuario autenticado
 - **Filtrado por usuario**: `findByUser()` en vez de `findAll()` — un usuario nunca ve datos de otro
 - **Sesion unica**: solo una sesion activa por usuario (validado en backend con `ActiveSessionExistsException`)
-- **Validacion**: todos los inputs validados en entidades de dominio, no en controllers
+- **Validacion**: todos los inputs validados en entidades de dominio y Value Objects, no en controllers
 - **Password**: hasheado con el hasher nativo de Symfony (bcrypt/argon2)
+- **Excepciones**: `AuthenticationException` (401), `AccessDeniedException` (403), todas capturadas por `ApiExceptionListener`
 
 ---
 

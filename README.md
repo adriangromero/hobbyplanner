@@ -231,7 +231,8 @@ backend/src/
     ValueObject/          ItemId, ProjectId, UserId, Email, ItemStatus, ProjectStatus, ProjectEstimation
     Repository/           *RepositoryInterface (ports)
     Service/              ProjectEstimator
-    Exception/            DomainException, NotFoundException, ValidationException...
+    Security/             OwnableResource (interfaz que implementan las entidades)
+    Exception/            DomainException, NotFoundException, ValidationException, AuthenticationException, AccessDeniedException...
   Application/
     UseCase/
       Auth/Login/         LoginUseCase
@@ -241,19 +242,22 @@ backend/src/
       WorkSession/        Start, Finish, Update, Delete
       Inventory/          ListInventory
     DTO/                  ProjectDTO, ItemDTO, WorkSessionDTO, ProjectEstimationDTO
+    Port/                 CurrentUserProvider (interfaz para obtener usuario autenticado)
+    Security/             OwnershipGuard (verifica que el recurso es del usuario)
   Infrastructure/
     Controller/Api/       AuthController, ProjectController, ItemController, WorkSessionController, InventoryController
     Persistence/Doctrine/
       Repository/         DoctrineProjectRepository, DoctrineItemRepository...
       Type/               UserIdType, ProjectIdType, ItemIdType, EmailType...
     EventListener/        ApiExceptionListener
+    Security/             SymfonyCurrentUserProvider (implementa CurrentUserProvider via JWT)
 ```
 
 ### Frontend
 
 ```
 frontend/src/
-  api/                    Axios instance con interceptor JWT
+  api/                    Axios instance con interceptor JWT (token automatico + redirect 401)
   components/
     items/                ItemsTable, ItemRow, CreateItemModal, SessionsModal
     projects/             ProjectCard, CreateProjectModal, ProjectEstimationCard
@@ -301,11 +305,14 @@ frontend/src/
 - Toggle de estado con confirmacion
 - Link a cada proyecto
 
-### Autenticacion
-- Registro y login con JWT
-- Token en localStorage con interceptor Axios
+### Autenticacion y Seguridad
+- Registro y login con JWT (TTL 1 hora, firma RSA)
+- Token en localStorage con interceptor Axios (automatico en cada request)
 - Redireccion automatica a /login en 401
 - Logout desde menu de usuario en NavBar
+- **OwnershipGuard**: cada operacion sobre un recurso existente verifica que pertenece al usuario autenticado
+- Excepciones de dominio mapeadas a HTTP: AuthenticationException (401), AccessDeniedException (403)
+- Filtrado por usuario en repositorios: un usuario nunca puede ver datos de otro
 
 ## Licencia
 

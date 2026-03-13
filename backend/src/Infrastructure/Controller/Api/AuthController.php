@@ -8,26 +8,29 @@ use App\Application\UseCase\Auth\Login\LoginRequest;
 use App\Application\UseCase\Auth\Login\LoginUseCase;
 use App\Application\UseCase\User\CreateUser\CreateUserRequest;
 use App\Application\UseCase\User\CreateUser\CreateUserUseCase;
-use App\Domain\Exception\ValidationException;
+use App\Domain\Repository\UserRepositoryInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
 #[Route('/api/auth')]
-final class AuthController
+final class AuthController extends ApiController
 {
     public function __construct(
+        UserRepositoryInterface            $userRepository,
         private readonly CreateUserUseCase $createUserUseCase,
         private readonly LoginUseCase      $loginUseCase,
-    ) {}
+    ) {
+        parent::__construct($userRepository);
+    }
 
     #[Route('/register', name: 'api_auth_register', methods: ['POST'])]
     public function register(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
 
-        $this->validateFields($data, ['email', 'password', 'name']);
+        $this->validateRequired($data, ['email', 'password', 'name']);
 
         $response = $this->createUserUseCase->execute(
             new CreateUserRequest(
@@ -50,7 +53,7 @@ final class AuthController
     {
         $data = json_decode($request->getContent(), true);
 
-        $this->validateFields($data, ['email', 'password']);
+        $this->validateRequired($data, ['email', 'password']);
 
         $response = $this->loginUseCase->execute(
             new LoginRequest(
@@ -67,20 +70,5 @@ final class AuthController
                 'name'  => $response->name,
             ],
         ]);
-    }
-
-    private function validateFields(?array $data, array $fields): void
-    {
-        if ($data === null) {
-            throw new ValidationException('El cuerpo de la petición debe ser JSON válido');
-        }
-
-        $missing = array_filter($fields, fn($field) => !isset($data[$field]));
-
-        if (!empty($missing)) {
-            throw new ValidationException(
-                'Faltan campos requeridos: ' . implode(', ', $missing)
-            );
-        }
     }
 }

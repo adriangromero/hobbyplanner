@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Security;
 
 use App\Application\Port\CurrentUserProvider;
+use App\Domain\Exception\AuthenticationException;
 use App\Domain\Repository\UserRepositoryInterface;
 use App\Domain\ValueObject\Email;
 use App\Domain\ValueObject\UserId;
@@ -22,7 +23,7 @@ final class SymfonyCurrentUserProvider implements CurrentUserProvider
         $securityUser = $this->security->getUser();
 
         if ($securityUser === null) {
-            throw new \RuntimeException('No authenticated user');
+            throw new AuthenticationException('No authenticated user');
         }
 
         $user = $this->userRepository->findByEmail(
@@ -30,7 +31,7 @@ final class SymfonyCurrentUserProvider implements CurrentUserProvider
         );
 
         if ($user === null) {
-            throw new \RuntimeException('Authenticated user not found in database');
+            throw new AuthenticationException('Authenticated user not found in database');
         }
 
         return $user->id();
