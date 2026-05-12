@@ -24,7 +24,7 @@ final class EmailType extends Type
 
     public function getSQLDeclaration(array $fieldDeclaration, AbstractPlatform $platform): string
     {
-        return $platform->getGuidTypeDeclarationSQL($fieldDeclaration);
+        return $platform->getStringTypeDeclarationSQL($fieldDeclaration);
     }
 
     public function getName(): string

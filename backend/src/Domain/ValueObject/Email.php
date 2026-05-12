@@ -6,39 +6,27 @@ namespace App\Domain\ValueObject;
 
 use App\Domain\Exception\InvalidEmailException;
 
-/**
- * Value Object for Email.
- * 
- * Why not use string directly?
- * - Strong typing: function findUser(Email $email) vs function findUser(string $email)
- * - You can't pass a name where an email goes by mistake
- * - Email validates itself
- */
 final class Email
 {
-    private string $value;
+    private readonly string $value;
 
-    public function __construct(string $value)
+    private function __construct(string $value)
     {
-        $this->validate($value);
-        $this->value = strtolower(trim($value));
-    }
-
-    private function validate(string $email): void
-    {
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new InvalidEmailException($email);
+        if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+            throw new InvalidEmailException($value);
         }
-    }
 
-    public function value(): string
-    {
-        return $this->value;
+        $this->value = strtolower(trim($value));
     }
 
     public static function fromString(string $value): self
     {
         return new self($value);
+    }
+
+    public function value(): string
+    {
+        return $this->value;
     }
 
     public function equals(Email $other): bool

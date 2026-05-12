@@ -39,6 +39,7 @@ router.beforeEach((to) => {
   const auth = useAuthStore()
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
+    auth.clearSession()
     return { name: 'Login' }
   }
 

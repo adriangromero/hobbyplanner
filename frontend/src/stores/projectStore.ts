@@ -1,62 +1,10 @@
 import { defineStore } from 'pinia'
-import api from '@/api/axios'
 import { useTimerStore } from '@/stores/timerStore'
+import { projectApi } from '@/api/projectApi'
+import { inventoryApi } from '@/api/inventoryApi'
+import type { Project, Item, Estimation, InventoryItem, Session } from '@/types/models'
 
-type Session = {
-  id:            string
-  startedAt:     string
-  endedAt:       string | null
-  durationHours: number
-}
-
-type OpenSession = {
-  id:        string
-  startedAt: string
-}
-
-export type Item = {
-  id:             string
-  name:           string
-  estimatedHours: number
-  status:         'pending' | 'in_progress' | 'completed'
-  createdAt:      string
-  totalSessions:  number
-  totalHours:     number
-  openSession:    OpenSession | null
-}
-
-export type Project = {
-  id:           string
-  name:         string
-  description?: string
-  status:       'active' | 'completed'
-  createdAt:    string
-}
-
-type Estimation = {
-  startDate:               string | null
-  estimatedHours:          number
-  workedHours:             number
-  remainingHours:          number
-  velocityPerActiveDay:    number
-  activeDays:              number
-  frequencyDaysPerWeek:    number
-  activeDaysRemaining:     number | null
-  daysRemaining:           number | null
-  estimatedCompletionDate: string | null
-}
-
-export type InventoryItem = {
-  id:             string
-  name:           string
-  estimatedHours: number
-  status:         'pending' | 'in_progress' | 'completed'
-  createdAt:      string
-  totalSessions:  number
-  totalHours:     number
-  projectId:      string
-  projectName:    string
-}
+export type { Project, Item, InventoryItem }
 
 export const useProjectStore = defineStore('project', {
   state: () => ({
@@ -75,8 +23,7 @@ export const useProjectStore = defineStore('project', {
       this.error   = null
 
       try {
-        const { data } = await api.get('/projects')
-        this.projects = data.projects
+        this.projects = await projectApi.list()
       } catch (e: any) {
         this.error = e.response?.data?.error ?? 'Error al cargar proyectos'
       } finally {
@@ -89,18 +36,16 @@ export const useProjectStore = defineStore('project', {
       this.error   = null
 
       try {
-        const [projectRes, estimationRes] = await Promise.all([
-          api.get(`/projects/${id}`),
-          api.get(`/projects/${id}/estimation`),
+        const [detail, estimation] = await Promise.all([
+          projectApi.detail(id),
+          projectApi.estimation(id),
         ])
 
-        this.currentProject = projectRes.data.project
-        this.items          = projectRes.data.items
-        this.estimation     = estimationRes.data
+        this.currentProject = detail.project
+        this.items          = detail.items
+        this.estimation     = estimation
 
-        // Restaurar timer si hay sesión abierta
         this.restoreTimer()
-
       } catch (e: any) {
         this.error = e.response?.data?.error ?? 'Error al cargar proyecto'
       } finally {
@@ -113,8 +58,7 @@ export const useProjectStore = defineStore('project', {
       this.error   = null
 
       try {
-        const { data } = await api.get('/inventory')
-        this.inventory = data.items
+        this.inventory = await inventoryApi.list()
       } catch (e: any) {
         this.error = e.response?.data?.error ?? 'Error al cargar inventario'
       } finally {
@@ -125,7 +69,6 @@ export const useProjectStore = defineStore('project', {
     restoreTimer() {
       const timer = useTimerStore()
 
-      // Si ya hay un timer corriendo no hacemos nada
       if (timer.isRunning) return
 
       for (const item of this.items) {
@@ -150,8 +93,7 @@ export const useProjectStore = defineStore('project', {
       if (!this.currentProject) return
 
       try {
-        const { data } = await api.get(`/projects/${this.currentProject.id}/estimation`)
-        this.estimation = data
+        this.estimation = await projectApi.estimation(this.currentProject.id)
       } catch {
         // silencioso — la estimación es secundaria
       }
@@ -195,7 +137,7 @@ export const useProjectStore = defineStore('project', {
 
       project.name        = updated.name
       project.description = updated.description
-      if (updated.status) project.status = updated.status as 'active' | 'completed'
+      if (updated.status) project.status = updated.status as Project['status']
     },
 
     removeProject(projectId: string) {

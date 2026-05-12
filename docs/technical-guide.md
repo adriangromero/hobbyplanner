@@ -40,7 +40,9 @@ HobbyPlanner sigue una arquitectura **DDD (Domain-Driven Design)** con patron **
 
 ```
 frontend/src/
-  api/          <- Axios instance con interceptor JWT
+  api/          <- Capa de servicios API (axios.ts + projectApi, itemApi, sessionApi, inventoryApi, authApi)
+  auth/         <- TokenIntrospector (decode JWT, detectar expiracion client-side)
+  types/        <- Tipos centralizados (models.ts: Project, Item, Session, Estimation, InventoryItem)
   components/   <- Componentes Vue organizados por feature
   composables/  <- Logica reutilizable (useBlockingAction, useToast)
   layout/       <- AppLayout, NavBar
@@ -49,6 +51,8 @@ frontend/src/
   views/        <- Paginas (Login, Projects, ProjectDetail, Inventory)
   router/       <- Vue Router con rutas protegidas
 ```
+
+**Patrón hexagonal en frontend**: los componentes y stores NUNCA importan `axios` directamente — usan los servicios API tipados (`projectApi`, `itemApi`, etc.). El unico archivo que importa `axios` es `api/axios.ts`.
 
 ### Diagrama de flujo de una peticion completa
 
@@ -130,9 +134,8 @@ Symfony Security: valida JWT → OK, es ROLE_USER
   │
   ▼
 ItemController.create(Request $request)
-  │  $data = json_decode($request->getContent())
-  │  $user = $this->getCurrentUser()
-  │  validateRequired($data, ['name', 'projectId', 'estimatedHours'])
+  │  $data = $this->jsonBody($request, ['name', 'projectId', 'estimatedHours'])
+  │  $userId = $this->currentUserId()
   │
   ▼
 CreateItemUseCase.execute(CreateItemRequest)
@@ -166,7 +169,7 @@ Vue: reactivamente muestra el nuevo item en la tabla
 
 | Entidad       | Responsabilidad                                        |
 |---------------|--------------------------------------------------------|
-| `User`        | Usuario con email, password, roles. Implementa `UserInterface` de Symfony |
+| `User`        | Usuario con email, password, roles. 100% dominio puro — sin dependencias de Symfony |
 | `Project`     | Proyecto de hobby con nombre, descripcion y estado (active/completed) |
 | `Item`        | Item dentro de un proyecto con horas estimadas y estado (pending/in_progress/completed) |
 | `WorkSession` | Sesion de trabajo con inicio/fin, calcula duracion     |
@@ -185,10 +188,10 @@ Cada entidad:
 | `ProjectId`         | UUID v4 tipado para proyectos          |
 | `ItemId`            | UUID v4 tipado para items              |
 | `WorkSessionId`     | UUID v4 tipado para sesiones           |
-| `Email`             | Email validado con `filter_var`        |
+| `Email`             | Email validado con `filter_var`. Constructor privado, factory `fromString()` |
 | `ItemStatus`        | Enum: PENDING, IN_PROGRESS, COMPLETED  |
 | `ProjectStatus`     | Enum: ACTIVE, COMPLETED                |
-| `ProjectEstimation` | VO inmutable con datos de estimacion   |
+| `ProjectEstimation` | VO inmutable con datos de estimacion. Constructor privado, factory `create()` con validacion de rangos |
 
 Todos los IDs:
 - Se crean con `::create()` (genera UUID v4)
@@ -384,7 +387,74 @@ DeleteItemUseCase.execute(itemId)
 
 El orden es critico: siempre se borran primero las entidades hijas.
 
-### 3.4 DTOs
+Las operaciones de borrado se ejecutan dentro de una **transaccion** via `TransactionPort`:
+
+```php
+$this->transaction->transactional(function () use ($request, $project): void {
+    $this->sessionRepository->deleteByProject($request->projectId());
+    $this->itemRepository->deleteByProject($request->projectId());
+    $this->projectRepository->delete($project);
+});
+```
+
+### 3.4 Ports (Application Layer)
+
+Los ports son interfaces que la capa de Application define para desacoplarse de la infraestructura. La infraestructura los implementa como adapters.
+
+| Port | Responsabilidad | Adapter (Infrastructure) |
+|------|----------------|--------------------------|
+| `CurrentUserProvider` | Obtener el UserId del usuario autenticado | `SymfonyCurrentUserProvider` (lee JWT via Symfony Security) |
+| `PasswordHasherPort` | Hashear y verificar passwords | `SymfonyPasswordHasher` (usa `UserPasswordHasherInterface` de Symfony) |
+| `TokenGeneratorPort` | Generar tokens JWT | `LexikTokenGenerator` (usa `JWTTokenManagerInterface` de Lexik) |
+| `TransactionPort` | Ejecutar operaciones en transaccion | `DoctrineTransactionManager` (usa `EntityManager::wrapInTransaction()`) |
+
+Esto permite que `LoginUseCase` y `CreateUserUseCase` no importen nada de Symfony ni Lexik:
+
+```php
+final class LoginUseCase
+{
+    public function __construct(
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly PasswordHasherPort      $passwordHasher,  // Port
+        private readonly TokenGeneratorPort      $tokenGenerator,  // Port
+    ) {}
+}
+```
+
+### 3.5 SecurityUser — Adapter Pattern
+
+La entidad `User` del dominio NO implementa `UserInterface` de Symfony. En su lugar, un adapter en infraestructura la envuelve:
+
+```php
+// Infrastructure/Security/SecurityUser.php
+final class SecurityUser implements UserInterface, PasswordAuthenticatedUserInterface
+{
+    public function __construct(private readonly User $domainUser) {}
+
+    public function domainUser(): User               { return $this->domainUser; }
+    public function getUserIdentifier(): string       { return $this->domainUser->email()->value(); }
+    public function getRoles(): array                 { return $this->domainUser->roles(); }
+    public function getPassword(): string             { return $this->domainUser->password(); }
+}
+```
+
+`SecurityUserProvider` carga el usuario de BD y lo envuelve:
+
+```php
+final class SecurityUserProvider implements UserProviderInterface
+{
+    public function loadUserByIdentifier(string $identifier): UserInterface
+    {
+        $user = $this->userRepository->findByEmail(Email::fromString($identifier));
+        if ($user === null) { throw new UserNotFoundException(); }
+        return new SecurityUser($user);
+    }
+}
+```
+
+Esto mantiene el dominio 100% libre de Symfony.
+
+### 3.6 DTOs
 
 Los DTOs convierten entidades de dominio a datos planos para la respuesta HTTP. Usan factory methods estaticos:
 
@@ -415,14 +485,12 @@ Los controllers son delgados — solo:
 public function toggleStatus(string $id, ToggleItemStatusUseCase $useCase): JsonResponse
 {
     $response = $useCase->execute(new ToggleItemStatusRequest($id));
-    $dto = $response->item();
 
-    return new JsonResponse([
-        'id'     => $dto->id,
-        'status' => $dto->status,
-    ]);
+    return new JsonResponse($response->item()->toArray());
 }
 ```
+
+Los DTOs encapsulan su propia serializacion via `toArray()` — los controllers nunca acceden a propiedades individuales del DTO.
 
 ### 4.2 Doctrine Repositories (Adapters)
 
@@ -446,15 +514,19 @@ final class DoctrineItemRepository extends ServiceEntityRepository
 
 ### 4.3 Doctrine Custom Types
 
-Convierten Value Objects a/desde la base de datos:
+Convierten Value Objects a/desde la base de datos. Los tipos de ID heredan de `AbstractIdType` (DRY):
 
-| Type | VO | Columna BD |
-|------|-----|------------|
-| `UserIdType` | `UserId` | `VARCHAR(36)` |
-| `ProjectIdType` | `ProjectId` | `VARCHAR(36)` |
-| `ItemIdType` | `ItemId` | `VARCHAR(36)` |
-| `WorkSessionIdType` | `WorkSessionId` | `VARCHAR(36)` |
-| `EmailType` | `Email` | `VARCHAR(255)` |
+| Type | VO | Columna BD | Base |
+|------|-----|------------|------|
+| `UserIdType` | `UserId` | `VARCHAR(36)` | `AbstractIdType` |
+| `ProjectIdType` | `ProjectId` | `VARCHAR(36)` | `AbstractIdType` |
+| `ItemIdType` | `ItemId` | `VARCHAR(36)` | `AbstractIdType` |
+| `WorkSessionIdType` | `WorkSessionId` | `VARCHAR(36)` | `AbstractIdType` |
+| `EmailType` | `Email` | `VARCHAR(255)` | `Type` (directo) |
+| `ItemStatusType` | `ItemStatus` | `VARCHAR(20)` | `Type` (enum) |
+| `ProjectStatusType` | `ProjectStatus` | `VARCHAR(20)` | `Type` (enum) |
+
+`AbstractIdType` elimina la duplicacion — cada tipo de ID solo define el nombre y la clase VO correspondiente.
 
 ### 4.4 ApiExceptionListener
 
@@ -503,15 +575,46 @@ backend/config/doctrine/mapping/
 
 ## 5. Frontend
 
-### 5.1 Stores (Pinia)
+### 5.1 API Services Layer
+
+Cada modulo del backend tiene su servicio API correspondiente en el frontend:
+
+| Servicio | Metodos | Tipos |
+|----------|---------|-------|
+| `projectApi` | `list()`, `detail(id)`, `estimation(id)`, `create()`, `update()`, `toggleStatus()`, `remove()` | `Project`, `Estimation` |
+| `itemApi` | `create()`, `update()`, `toggleStatus()`, `remove()`, `sessions(id)` | `Item`, `Session` |
+| `sessionApi` | `start()`, `finish()`, `update()`, `remove()` | `Session` |
+| `inventoryApi` | `list()` | `InventoryItem` |
+| `authApi` | `login()`, `register()` | `LoginResponse`, `RegisterResponse` |
+
+Todos importan desde `@/api/axios` (instancia configurada) y devuelven tipos propios o de `@/types/models`.
+
+### 5.2 TokenIntrospector
+
+Utilidad que decodifica el JWT client-side para detectar expiracion proactivamente:
+
+```typescript
+export const TokenIntrospector = {
+  decode(token: string): JwtPayload | null,
+  isExpired(token: string, marginSeconds = 30): boolean,
+  secondsUntilExpiry(token: string): number,
+}
+```
+
+Se usa en:
+- `authStore.isAuthenticated` — getter puro que verifica token + expiracion
+- `authStore.loadStoredToken()` — limpia tokens expirados al arrancar
+- `api/axios.ts` — interceptor de request rechaza peticiones con token expirado
+
+### 5.3 Stores (Pinia)
 
 | Store          | Responsabilidad                                           |
 |----------------|-----------------------------------------------------------|
-| `authStore`    | Login, registro, JWT en localStorage, logout              |
-| `projectStore` | CRUD proyectos/items, estimacion, inventario, restaurar timer |
-| `timerStore`   | Timer en tiempo real, start/stop/restore, formato elapsed |
+| `authStore`    | Login, registro, JWT en localStorage, logout, `isAuthenticated` via TokenIntrospector |
+| `projectStore` | CRUD proyectos/items via API services, estimacion, inventario, restaurar timer |
+| `timerStore`   | Timer en tiempo real via `sessionApi`, start/stop/restore, formato elapsed |
 
-### 5.2 Patron: Blocking Overlay
+### 5.4 Patron: Blocking Overlay
 
 Las operaciones destructivas bloquean toda la pantalla con un overlay:
 
@@ -519,19 +622,19 @@ Las operaciones destructivas bloquean toda la pantalla con un overlay:
 const { loading, loadingMessage, run } = useBlockingAction()
 
 await run('Eliminando item...', async () => {
-  await api.delete(`/items/${id}`)
+  await itemApi.remove(id)
   projectStore.removeItem(id)
 })
 ```
 
-### 5.3 Timer Global
+### 5.5 Timer Global
 
 El timer se muestra en la NavBar y persiste entre navegaciones:
 - `timerStore.start()` llama al backend y arranca un `setInterval`
 - `timerStore.restore()` reconstruye el timer desde una sesion abierta en BD
 - `projectStore.restoreTimer()` busca un item con `openSession` al cargar un proyecto
 
-### 5.4 Confirmaciones Inline
+### 5.6 Confirmaciones Inline
 
 Las acciones criticas (completar item, iniciar/parar timer, eliminar) muestran confirmacion inline:
 
@@ -539,7 +642,7 @@ Las acciones criticas (completar item, iniciar/parar timer, eliminar) muestran c
 [ ] checkbox  ->  "¿Completar? [Si] [No]"  ->  API call + refresh estimation
 ```
 
-### 5.5 Inventario
+### 5.7 Inventario
 
 Vista global de todos los items del usuario con:
 - Filtros por estado (Todos, Pendientes, En progreso, Completados)
@@ -628,9 +731,11 @@ tests/Unit/
 ```
 
 **Estrategia**:
-- **Entidades y VOs**: test directo sin mocks, verifican invariantes y transiciones de estado
-- **Use Cases**: mocks de repositorios, verifican orden de llamadas y excepciones
-- **ProjectEstimator**: test con entidades reales, sesiones vinculadas a items por `itemId`
+- **Entidades y VOs**: test directo sin mocks, usando factories (`Item::create()`, `WorkSession::startNow()`). Verifican invariantes, validacion y transiciones de estado
+- **Use Cases**: mocks de repositorios y ports (`TransactionPort`, `CurrentUserProvider`). Verifican orden de llamadas, ownership y excepciones
+- **ProjectEstimator**: test con entidades reales creadas via factories, sesiones con `startNow()` + `update()` para controlar fechas
+
+**Principio clave**: los tests NUNCA llaman constructores privados directamente — siempre usan las factory methods del dominio, respetando la encapsulacion.
 
 Ejemplo — test del estimador con items completados:
 
@@ -724,7 +829,7 @@ El proyecto tiene 3 niveles de seguridad que trabajan juntos:
 │  NIVEL 2: AUTORIZACION (Roles)                                      │
 │  "¿Puedes acceder a esta ruta?"                                     │
 │  security.yaml → access_control                                     │
-│  → /api/auth/* es PUBLIC_ACCESS, todo lo demas requiere ROLE_USER   │
+│  → /api/auth/* y /api/health son PUBLIC_ACCESS, lo demas ROLE_USER  │
 ├─────────────────────────────────────────────────────────────────────┤
 │  NIVEL 3: OWNERSHIP (OwnershipGuard)                                │
 │  "¿Este recurso es tuyo?"                                           │
@@ -759,7 +864,7 @@ El proyecto tiene 3 niveles de seguridad que trabajan juntos:
 └──────────┘
 ```
 
-**¿Que contiene el JWT?** El email del usuario. Lexik lo firma con la clave privada RSA (`config/jwt/private.pem`). TTL: 3600 segundos (1 hora).
+**¿Que contiene el JWT?** El email del usuario. Lexik lo firma con la clave privada RSA (`config/jwt/private.pem`). TTL: 28800 segundos (8 horas).
 
 ### 8.3 Flujo de una PETICION AUTENTICADA
 
@@ -822,8 +927,8 @@ El proyecto tiene 3 niveles de seguridad que trabajan juntos:
 │    │     │                                                       │
 │    │     └── SymfonyCurrentUserProvider (Infrastructure)          │
 │    │           │                                                 │
-│    │           ├── security.getUser() → email del JWT             │
-│    │           └── userRepository.findByEmail() → UserId          │
+│    │           ├── security.getUser() → SecurityUser (adapter)    │
+│    │           └── securityUser.domainUser().id() → UserId        │
 │    │                                                             │
 │    ├── $resource.ownerId()                                        │
 │    │     │                                                       │
@@ -890,11 +995,24 @@ El proyecto tiene 3 niveles de seguridad que trabajan juntos:
 
 ┌── Infrastructure ──────────────────────────────────────────────────┐
 │                                                                    │
+│  class SecurityUser implements UserInterface (ADAPTER)              │
+│      → Envuelve User del dominio para Symfony Security              │
+│                                                                    │
+│  class SecurityUserProvider implements UserProviderInterface        │
+│      → Carga User de BD por email y lo envuelve en SecurityUser     │
+│                                                                    │
 │  class SymfonyCurrentUserProvider implements CurrentUserProvider    │
 │      (ADAPTER)                                                     │
-│      → Usa Symfony Security para leer el JWT                       │
-│      → Busca el User en BD por email                               │
-│      → Devuelve su UserId                                          │
+│      → security.getUser() → SecurityUser → domainUser().id()       │
+│                                                                    │
+│  class SymfonyPasswordHasher implements PasswordHasherPort         │
+│      → Hashea/verifica via SecurityUser wrapper                     │
+│                                                                    │
+│  class LexikTokenGenerator implements TokenGeneratorPort           │
+│      → Genera JWT via SecurityUser wrapper                          │
+│                                                                    │
+│  class DoctrineTransactionManager implements TransactionPort       │
+│      → EntityManager::wrapInTransaction()                           │
 │                                                                    │
 └────────────────────────────────────────────────────────────────────┘
 ```
@@ -919,10 +1037,10 @@ El proyecto tiene 3 niveles de seguridad que trabajan juntos:
 
 ### 8.7 Resumen de seguridad
 
-- **JWT**: token en `localStorage`, enviado via `Authorization: Bearer` header
+- **JWT**: token en `localStorage` (TTL 8 horas), enviado via `Authorization: Bearer` header
 - **Interceptores Axios**: el de request añade el token automaticamente; el de response redirige a /login en 401
 - **Firewall Symfony**: valida el JWT antes de que llegue al controller
-- **Rutas publicas**: solo `/api/auth/login` y `/api/auth/register`
+- **Rutas publicas**: `/api/auth/login`, `/api/auth/register` y `/api/health`
 - **OwnershipGuard**: verifica que el recurso pertenece al usuario autenticado
 - **Filtrado por usuario**: `findByUser()` en vez de `findAll()` — un usuario nunca ve datos de otro
 - **Sesion unica**: solo una sesion activa por usuario (validado en backend con `ActiveSessionExistsException`)

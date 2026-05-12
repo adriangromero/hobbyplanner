@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\UseCase\Item\DeleteItem;
 
+use App\Application\Port\TransactionPort;
 use App\Application\Security\OwnershipGuard;
 use App\Domain\Exception\ItemNotFoundException;
 use App\Domain\Repository\ItemRepositoryInterface;
@@ -15,6 +16,7 @@ final class DeleteItemUseCase
         private readonly ItemRepositoryInterface        $itemRepository,
         private readonly WorkSessionRepositoryInterface $sessionRepository,
         private readonly OwnershipGuard                 $ownershipGuard,
+        private readonly TransactionPort                $transaction,
     ) {}
 
     public function execute(DeleteItemRequest $request): void
@@ -27,7 +29,9 @@ final class DeleteItemUseCase
 
         $this->ownershipGuard->ensureOwnership($item);
 
-        $this->sessionRepository->deleteByItem($request->itemId());
-        $this->itemRepository->delete($item);
+        $this->transaction->transactional(function () use ($request, $item): void {
+            $this->sessionRepository->deleteByItem($request->itemId());
+            $this->itemRepository->delete($item);
+        });
     }
 }

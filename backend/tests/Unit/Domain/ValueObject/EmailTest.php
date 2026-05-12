@@ -12,7 +12,7 @@ final class EmailTest extends TestCase
 {
     public function testValidEmail(): void
     {
-        $email = new Email('Test@Example.COM');
+        $email = Email::fromString('Test@Example.COM');
 
         $this->assertSame('test@example.com', $email->value());
     }
@@ -21,14 +21,14 @@ final class EmailTest extends TestCase
     {
         $this->expectException(InvalidEmailException::class);
 
-        new Email('not-an-email');
+        Email::fromString('not-an-email');
     }
 
     public function testEmptyEmailThrowsException(): void
     {
         $this->expectException(InvalidEmailException::class);
 
-        new Email('');
+        Email::fromString('');
     }
 
     public function testFromString(): void
@@ -40,23 +40,23 @@ final class EmailTest extends TestCase
 
     public function testEquals(): void
     {
-        $a = new Email('user@test.com');
-        $b = new Email('USER@TEST.COM');
+        $a = Email::fromString('user@test.com');
+        $b = Email::fromString('USER@TEST.COM');
 
         $this->assertTrue($a->equals($b));
     }
 
     public function testNotEquals(): void
     {
-        $a = new Email('user1@test.com');
-        $b = new Email('user2@test.com');
+        $a = Email::fromString('user1@test.com');
+        $b = Email::fromString('user2@test.com');
 
         $this->assertFalse($a->equals($b));
     }
 
     public function testToString(): void
     {
-        $email = new Email('User@Test.com');
+        $email = Email::fromString('User@Test.com');
 
         $this->assertSame('user@test.com', (string) $email);
     }

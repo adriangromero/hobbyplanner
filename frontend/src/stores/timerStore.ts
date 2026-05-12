@@ -1,13 +1,6 @@
 import { defineStore } from 'pinia'
-import api from '@/api/axios'
-
-interface SessionData {
-  id:            string
-  itemId:        string
-  startedAt:     string
-  endedAt:       string
-  durationHours: number
-}
+import { sessionApi } from '@/api/sessionApi'
+import type { Session } from '@/types/models'
 
 interface TimerState {
   isRunning:       boolean
@@ -47,27 +40,20 @@ export const useTimerStore = defineStore('timer', {
         throw new Error(`Ya tienes una sesión activa en "${this.activeItemName}". Finalízala antes de iniciar otra.`)
       }
 
-      try {
-        const { data } = await api.post('/work-sessions', { itemId, projectId })
+      const data = await sessionApi.start(itemId, projectId)
 
-        this.sessionId       = data.id
-        this.activeItemId    = itemId
-        this.activeItemName  = itemName
-        this.activeProjectId = projectId
-        this.elapsedSeconds  = 0
-        this.isRunning       = true
+      this.sessionId       = data.id
+      this.activeItemId    = itemId
+      this.activeItemName  = itemName
+      this.activeProjectId = projectId
+      this.elapsedSeconds  = 0
+      this.isRunning       = true
 
-        this.interval = setInterval(() => {
-          this.elapsedSeconds++
-        }, 1000)
-
-      } catch (e) {
-        console.error('Error al iniciar sesión', e)
-        throw e
-      }
+      this.interval = setInterval(() => {
+        this.elapsedSeconds++
+      }, 1000)
     },
 
-    // Restaurar timer desde sesión abierta en BD
     restore(
       sessionId: string,
       itemId: string,
@@ -87,10 +73,9 @@ export const useTimerStore = defineStore('timer', {
       }, 1000)
     },
 
-    async stop(): Promise<SessionData | null> {
+    async stop(): Promise<Session | null> {
       if (!this.sessionId) return null
 
-      // Para el intervalo INMEDIATAMENTE — fix del delay visual
       if (this.interval) {
         clearInterval(this.interval)
         this.interval = null
@@ -100,10 +85,8 @@ export const useTimerStore = defineStore('timer', {
       const sessionId = this.sessionId
 
       try {
-        const { data } = await api.put(`/work-sessions/${sessionId}/finish`)
-        return data
-      } catch (e) {
-        console.error('Error al finalizar sesión', e)
+        return await sessionApi.finish(sessionId)
+      } catch {
         return null
       } finally {
         this.reset()

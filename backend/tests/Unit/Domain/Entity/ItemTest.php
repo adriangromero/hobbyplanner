@@ -6,7 +6,6 @@ namespace App\Tests\Unit\Domain\Entity;
 
 use App\Domain\Entity\Item;
 use App\Domain\Exception\ValidationException;
-use App\Domain\ValueObject\ItemId;
 use App\Domain\ValueObject\ItemStatus;
 use App\Domain\ValueObject\ProjectId;
 use App\Domain\ValueObject\UserId;
@@ -14,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 final class ItemTest extends TestCase
 {
-    public function testConstruct(): void
+    public function testCreate(): void
     {
         $item = $this->createItem();
 
@@ -22,25 +21,25 @@ final class ItemTest extends TestCase
         $this->assertSame(5.0, $item->estimatedHours());
     }
 
-    public function testConstructEmptyNameThrows(): void
+    public function testCreateEmptyNameThrows(): void
     {
         $this->expectException(ValidationException::class);
 
-        new Item(ItemId::create(), ProjectId::create(), UserId::create(), '   ', 5.0);
+        Item::create(ProjectId::create(), UserId::create(), '   ', 5.0);
     }
 
-    public function testConstructZeroHoursThrows(): void
+    public function testCreateZeroHoursThrows(): void
     {
         $this->expectException(ValidationException::class);
 
-        new Item(ItemId::create(), ProjectId::create(), UserId::create(), 'Item', 0);
+        Item::create(ProjectId::create(), UserId::create(), 'Item', 0);
     }
 
-    public function testConstructNegativeHoursThrows(): void
+    public function testCreateNegativeHoursThrows(): void
     {
         $this->expectException(ValidationException::class);
 
-        new Item(ItemId::create(), ProjectId::create(), UserId::create(), 'Item', -1.0);
+        Item::create(ProjectId::create(), UserId::create(), 'Item', -1.0);
     }
 
     public function testUpdate(): void
@@ -120,8 +119,7 @@ final class ItemTest extends TestCase
 
     private function createItem(): Item
     {
-        return new Item(
-            ItemId::create(),
+        return Item::create(
             ProjectId::create(),
             UserId::create(),
             'Test Item',

@@ -58,7 +58,7 @@
 import { ref } from 'vue'
 import { useProjectStore } from '@/stores/projectStore'
 import { useToast } from '@/composables/useToast'
-import api from '@/api/axios'
+import { projectApi } from '@/api/projectApi'
 
 const emit = defineEmits<{ close: [] }>()
 
@@ -85,10 +85,10 @@ async function handleCreate() {
   loading.value = true
 
   try {
-    const { data } = await api.post('/projects', {
-      name:           form.value.name.trim(),
-      description:    form.value.description.trim(),
-    })
+    const data = await projectApi.create(
+      form.value.name.trim(),
+      form.value.description.trim(),
+    )
 
     projectStore.addProject({
       id:             data.id,

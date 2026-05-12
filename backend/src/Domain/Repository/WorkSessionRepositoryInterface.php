@@ -33,6 +33,11 @@ interface WorkSessionRepositoryInterface
      */
     public function findGroupedByItem(ProjectId $projectId): array;
 
+    /**
+     * @return WorkSession[]
+     */
+    public function findByUser(UserId $userId): array;
+
     public function findActiveByUser(UserId $userId): ?WorkSession;
 
     public function deleteByItem(ItemId $itemId): void;

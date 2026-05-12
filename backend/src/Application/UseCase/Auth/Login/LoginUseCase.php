@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace App\Application\UseCase\Auth\Login;
 
+use App\Application\Port\PasswordHasherPort;
+use App\Application\Port\TokenGeneratorPort;
 use App\Domain\Exception\InvalidCredentialsException;
 use App\Domain\Repository\UserRepositoryInterface;
 use App\Domain\ValueObject\Email;
-use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final class LoginUseCase
 {
     public function __construct(
-        private readonly UserRepositoryInterface     $userRepository,
-        private readonly UserPasswordHasherInterface $passwordHasher,
-        private readonly JWTTokenManagerInterface    $jwtManager,
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly PasswordHasherPort      $passwordHasher,
+        private readonly TokenGeneratorPort      $tokenGenerator,
     ) {}
 
     public function execute(LoginRequest $request): LoginResponse
@@ -28,11 +28,11 @@ final class LoginUseCase
             throw new InvalidCredentialsException();
         }
 
-        if (!$this->passwordHasher->isPasswordValid($user, $request->password())) {
+        if (!$this->passwordHasher->verify($user, $request->password())) {
             throw new InvalidCredentialsException();
         }
 
-        $token = $this->jwtManager->create($user);
+        $token = $this->tokenGenerator->generate($user);
 
         return new LoginResponse(
             token: $token,

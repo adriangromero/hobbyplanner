@@ -36,4 +36,20 @@ final class ProjectEstimationDTO
             estimatedCompletionDate: $estimation->estimatedCompletionDate()?->format('Y-m-d'),
         );
     }
+
+    public function toArray(): array
+    {
+        return [
+            'startDate'               => $this->startDate,
+            'estimatedHours'          => $this->estimatedHours,
+            'workedHours'             => $this->workedHours,
+            'remainingHours'          => $this->remainingHours,
+            'velocityPerActiveDay'    => $this->velocityPerActiveDay,
+            'activeDays'              => $this->activeDays,
+            'frequencyDaysPerWeek'    => $this->frequencyDaysPerWeek,
+            'activeDaysRemaining'     => $this->activeDaysRemaining,
+            'daysRemaining'           => $this->daysRemaining,
+            'estimatedCompletionDate' => $this->estimatedCompletionDate,
+        ];
+    }
 }

@@ -6,16 +6,15 @@ namespace App\Tests\Unit\Domain\Entity;
 
 use App\Domain\Entity\Project;
 use App\Domain\Exception\ValidationException;
-use App\Domain\ValueObject\ProjectId;
+use App\Domain\ValueObject\ProjectStatus;
 use App\Domain\ValueObject\UserId;
 use PHPUnit\Framework\TestCase;
 
 final class ProjectTest extends TestCase
 {
-    public function testConstruct(): void
+    public function testCreate(): void
     {
-        $project = new Project(
-            ProjectId::create(),
+        $project = Project::create(
             UserId::create(),
             'My Project',
             'A description',
@@ -23,6 +22,14 @@ final class ProjectTest extends TestCase
 
         $this->assertSame('My Project', $project->name());
         $this->assertSame('A description', $project->description());
+        $this->assertSame(ProjectStatus::ACTIVE, $project->status());
+    }
+
+    public function testCreateEmptyNameThrows(): void
+    {
+        $this->expectException(ValidationException::class);
+
+        Project::create(UserId::create(), '   ', 'desc');
     }
 
     public function testRename(): void
@@ -49,6 +56,23 @@ final class ProjectTest extends TestCase
         $this->assertSame('', $project->description());
     }
 
+    public function testMarkAsCompleted(): void
+    {
+        $project = $this->createProject();
+        $project->markAsCompleted();
+
+        $this->assertSame(ProjectStatus::COMPLETED, $project->status());
+    }
+
+    public function testMarkAsActiveAfterCompleted(): void
+    {
+        $project = $this->createProject();
+        $project->markAsCompleted();
+        $project->markAsActive();
+
+        $this->assertSame(ProjectStatus::ACTIVE, $project->status());
+    }
+
     public function testTimestampsAreSet(): void
     {
         $project = $this->createProject();
@@ -59,8 +83,7 @@ final class ProjectTest extends TestCase
 
     private function createProject(): Project
     {
-        return new Project(
-            ProjectId::create(),
+        return Project::create(
             UserId::create(),
             'Test Project',
             'Test Description',

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Domain\ValueObject;
 
+use App\Domain\Exception\ValidationException;
 use App\Domain\ValueObject\UserId;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
@@ -27,7 +28,7 @@ final class UserIdTest extends TestCase
 
     public function testFromStringWithInvalidUuidThrows(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(ValidationException::class);
 
         UserId::fromString('not-a-uuid');
     }

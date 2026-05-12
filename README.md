@@ -27,33 +27,47 @@ backend/src/
 
 | Principio | Aplicacion en el proyecto |
 |-----------|--------------------------|
-| **S** — Single Responsibility | Cada Use Case hace una sola cosa. Controllers solo traducen HTTP <-> Use Case. |
-| **O** — Open/Closed | Excepciones extensibles via jerarquia (`DomainException` -> `NotFoundException`, `ValidationException`). Nuevos estados como PHP enums sin modificar logica existente. |
+| **S** — Single Responsibility | Cada Use Case hace una sola cosa. Controllers solo traducen HTTP <-> Use Case. DTOs encapsulan su serializacion (`toArray()`). |
+| **O** — Open/Closed | Excepciones extensibles via jerarquia (`DomainException` -> `NotFoundException`, `ValidationException`). Nuevos IDs extienden `AbstractId`, nuevos types extienden `AbstractIdType`. |
 | **L** — Liskov Substitution | `DoctrineProjectRepository` es intercambiable por un `InMemoryProjectRepository` en tests sin cambiar ningun Use Case. |
-| **I** — Interface Segregation | Cada repositorio expone solo los metodos que su agregado necesita. |
-| **D** — Dependency Inversion | Use Cases dependen de `ProjectRepositoryInterface` (puerto del dominio), no de `DoctrineProjectRepository` (adaptador de infraestructura). |
+| **I** — Interface Segregation | Cada repositorio expone solo los metodos que su agregado necesita. Cada port define una sola responsabilidad. |
+| **D** — Dependency Inversion | Use Cases dependen de ports (`PasswordHasherPort`, `TokenGeneratorPort`, `TransactionPort`, `CurrentUserProvider`), no de Symfony/Doctrine/Lexik. |
+
+### Ports & Adapters
+
+| Port (Application) | Adapter (Infrastructure) | Responsabilidad |
+|---------------------|--------------------------|-----------------|
+| `CurrentUserProvider` | `SymfonyCurrentUserProvider` | Obtener usuario autenticado |
+| `PasswordHasherPort` | `SymfonyPasswordHasher` | Hashear/verificar passwords |
+| `TokenGeneratorPort` | `LexikTokenGenerator` | Generar JWT |
+| `TransactionPort` | `DoctrineTransactionManager` | Ejecutar transacciones |
+| `*RepositoryInterface` | `Doctrine*Repository` | Persistencia |
+
+**SecurityUser pattern**: la entidad `User` del dominio NO implementa interfaces de Symfony. Un adapter `SecurityUser` en infraestructura la envuelve para el sistema de seguridad.
 
 ### Value Objects e Inmutabilidad
 
-- **IDs tipados**: `ProjectId`, `ItemId`, `UserId`, `WorkSessionId` — UUID v4 con `create()`, `fromString()`, `equals()`
-- **Email**: validado con `filter_var`, inmutable
-- **ProjectEstimation**: VO inmutable con todos los datos de estimacion
+- **IDs tipados**: `ProjectId`, `ItemId`, `UserId`, `WorkSessionId` — heredan de `AbstractId` (UUID v4 con `create()`, `fromString()`, `equals()`)
+- **Email**: constructor privado, factory `fromString()`, validado con `filter_var`, inmutable
+- **ProjectEstimation**: constructor privado, factory `create()` con validacion de rangos, inmutable
 - **Enums como Value Objects**: `ItemStatus` (pending, in_progress, completed) y `ProjectStatus` (active, completed) — PHP 8.2 backed enums, almacenados como strings en BD, sin tabla auxiliar
 
-### Cascade de borrado en dominio (no en BD)
+### Cascade de borrado en dominio (transaccional, no en BD)
 
-El borrado en cascada lo orquesta el **Use Case**, no los constraints de base de datos:
+El borrado en cascada lo orquesta el **Use Case** dentro de una **transaccion** (`TransactionPort`), no los constraints de base de datos:
 
 ```
-DeleteProjectUseCase:
+DeleteProjectUseCase (transactional):
   1. sessionRepository->deleteByProject()   <- Borra work sessions
   2. itemRepository->deleteByProject()       <- Borra items
   3. projectRepository->delete()             <- Borra proyecto
 
-DeleteItemUseCase:
+DeleteItemUseCase (transactional):
   1. sessionRepository->deleteByItem()       <- Borra work sessions
   2. itemRepository->delete()                <- Borra item
 ```
+
+Si cualquier paso falla, la transaccion hace rollback — sin registros huerfanos.
 
 ## Modelo de datos
 
@@ -115,7 +129,7 @@ erDiagram
 | `users` | — | `uniq_users_email` (UNIQUE) |
 | `projects` | `user_id -> users(id) CASCADE` | `idx_projects_user_id` |
 | `items` | `project_id -> projects(id) CASCADE`, `user_id -> users(id) CASCADE` | `idx_items_project_id`, `idx_items_user_id`, `idx_items_status` |
-| `work_sessions` | `project_id -> projects(id) CASCADE`, `item_id -> items(id) CASCADE`, `user_id -> users(id) CASCADE` | `idx_work_sessions_project_id`, `idx_work_sessions_item_id`, `idx_work_sessions_user_id` |
+| `work_sessions` | `project_id -> projects(id) CASCADE`, `item_id -> items(id) CASCADE`, `user_id -> users(id) CASCADE` | `idx_work_sessions_user_id`, `idx_work_sessions_project_id`, `idx_work_sessions_item_id` |
 
 ## API Endpoints
 
@@ -158,7 +172,7 @@ erDiagram
 |--------|------------------|---------------------------------------------|
 | GET    | `/api/inventory` | Todos los items del usuario con su proyecto  |
 
-### Health
+### Health (publico, no requiere JWT)
 | Metodo | Ruta          | Descripcion    |
 |--------|---------------|----------------|
 | GET    | `/api/health` | Health check   |
@@ -168,6 +182,8 @@ erDiagram
 ### Requisitos
 
 - Docker y Docker Compose
+
+> **Nota de seguridad**: las credenciales en `docker-compose.yml` y `backend/.env` son exclusivamente para desarrollo local. Los secretos reales se configuran en `backend/.env.local` (no incluido en el repositorio).
 
 ### Instalacion
 
@@ -241,8 +257,8 @@ backend/src/
       Item/               Create, Update, Delete, GetSessions, ToggleStatus
       WorkSession/        Start, Finish, Update, Delete
       Inventory/          ListInventory
-    DTO/                  ProjectDTO, ItemDTO, WorkSessionDTO, ProjectEstimationDTO
-    Port/                 CurrentUserProvider (interfaz para obtener usuario autenticado)
+    DTO/                  ProjectDTO, ItemDTO, WorkSessionDTO, ProjectEstimationDTO (cada uno con toArray())
+    Port/                 CurrentUserProvider, PasswordHasherPort, TokenGeneratorPort, TransactionPort
     Security/             OwnershipGuard (verifica que el recurso es del usuario)
   Infrastructure/
     Controller/Api/       AuthController, ProjectController, ItemController, WorkSessionController, InventoryController
@@ -250,14 +266,17 @@ backend/src/
       Repository/         DoctrineProjectRepository, DoctrineItemRepository...
       Type/               UserIdType, ProjectIdType, ItemIdType, EmailType...
     EventListener/        ApiExceptionListener
-    Security/             SymfonyCurrentUserProvider (implementa CurrentUserProvider via JWT)
+    Security/             SecurityUser (adapter), SecurityUserProvider, SymfonyCurrentUserProvider, SymfonyPasswordHasher, LexikTokenGenerator
+    Persistence/Doctrine/ DoctrineTransactionManager (TransactionPort adapter)
 ```
 
 ### Frontend
 
 ```
 frontend/src/
-  api/                    Axios instance con interceptor JWT (token automatico + redirect 401)
+  api/                    Capa servicios API: axios.ts + projectApi, itemApi, sessionApi, inventoryApi, authApi
+  auth/                   TokenIntrospector (decode JWT client-side, detectar expiracion proactiva)
+  types/                  Tipos centralizados: Project, Item, Session, Estimation, InventoryItem
   components/
     items/                ItemsTable, ItemRow, CreateItemModal, SessionsModal
     projects/             ProjectCard, CreateProjectModal, ProjectEstimationCard
@@ -306,13 +325,18 @@ frontend/src/
 - Link a cada proyecto
 
 ### Autenticacion y Seguridad
-- Registro y login con JWT (TTL 1 hora, firma RSA)
+- Registro y login con JWT (TTL 8 horas, firma RSA)
 - Token en localStorage con interceptor Axios (automatico en cada request)
-- Redireccion automatica a /login en 401
+- `TokenIntrospector`: detecta token expirado client-side antes de enviar peticion
+- Redireccion automatica a /login en 401 o token expirado
 - Logout desde menu de usuario en NavBar
 - **OwnershipGuard**: cada operacion sobre un recurso existente verifica que pertenece al usuario autenticado
 - Excepciones de dominio mapeadas a HTTP: AuthenticationException (401), AccessDeniedException (403)
 - Filtrado por usuario en repositorios: un usuario nunca puede ver datos de otro
+
+## Autor
+
+Adrián González Romero
 
 ## Licencia
 

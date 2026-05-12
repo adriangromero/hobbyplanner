@@ -176,24 +176,19 @@ import { useProjectStore } from '@/stores/projectStore'
 import { useBlockingAction } from '@/composables/useBlockingAction'
 import { useToast } from '@/composables/useToast'
 import { formatDate, formatHours } from '@/utils/format'
+import { itemApi } from '@/api/itemApi'
+import { sessionApi } from '@/api/sessionApi'
 import BlockingOverlay from '@/components/ui/BlockingOverlay.vue'
-import api from '@/api/axios'
+import type { Session } from '@/types/models'
 
-interface Session {
-  id: string
-  startedAt: string
-  endedAt: string | null
-  durationHours: number
-}
-
-interface Item {
+interface SessionsModalItem {
   id: string
   name: string
   totalSessions: number
   totalHours: number
 }
 
-const props = defineProps<{ modelValue: boolean; item: Item }>()
+const props = defineProps<{ modelValue: boolean; item: SessionsModalItem }>()
 const emit  = defineEmits<{ 'update:modelValue': [value: boolean] }>()
 
 const projectStore                       = useProjectStore()
@@ -218,8 +213,7 @@ watch(() => props.modelValue, async (open) => {
 
   fetching.value = true
   try {
-    const { data } = await api.get(`/items/${props.item.id}/sessions`)
-    sessions.value = data.sessions
+    sessions.value = await itemApi.sessions(props.item.id)
   } catch {
     toast.error('Error al cargar las sesiones')
   } finally {
@@ -260,12 +254,13 @@ async function handleUpdateSession(session: Session) {
 
   await run('Guardando sesión...', async () => {
     try {
-      const { data } = await api.put(`/work-sessions/${session.id}`, {
-        startedAt: new Date(editSessionForm.value.startedAt).toISOString(),
-        endedAt:   editSessionForm.value.endedAt
+      const data = await sessionApi.update(
+        session.id,
+        new Date(editSessionForm.value.startedAt).toISOString(),
+        editSessionForm.value.endedAt
           ? new Date(editSessionForm.value.endedAt).toISOString()
           : null,
-      })
+      )
 
       const oldHours = session.endedAt ? session.durationHours : 0
       const newHours = data.durationHours ?? 0
@@ -293,7 +288,7 @@ async function handleUpdateSession(session: Session) {
 async function handleDeleteSession(session: Session) {
   await run('Eliminando sesión...', async () => {
     try {
-      await api.delete(`/work-sessions/${session.id}`)
+      await sessionApi.remove(session.id)
 
       const hoursToRemove = session.endedAt ? session.durationHours : 0
       projectStore.adjustItemTotalHours(props.item.id, -hoursToRemove, -1)

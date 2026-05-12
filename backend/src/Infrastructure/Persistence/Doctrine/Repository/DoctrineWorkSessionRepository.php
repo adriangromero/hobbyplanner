@@ -82,6 +82,16 @@ final class DoctrineWorkSessionRepository extends ServiceEntityRepository implem
         return $grouped;
     }
 
+    public function findByUser(UserId $userId): array
+    {
+        return $this->createQueryBuilder('ws')
+            ->where('ws.userId = :userId')
+            ->setParameter('userId', $userId->value())
+            ->orderBy('ws.startedAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
     public function findActiveByUser(UserId $userId): ?WorkSession
     {
         return $this->createQueryBuilder('ws')

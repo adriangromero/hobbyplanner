@@ -48,7 +48,7 @@ final class ProjectEstimator
             $today,
         );
 
-        return new ProjectEstimation(
+        return ProjectEstimation::create(
             startDate:               $projectStart,
             estimatedHours:          $totalEstimatedHours,
             workedHours:             $totalWorkedHours,

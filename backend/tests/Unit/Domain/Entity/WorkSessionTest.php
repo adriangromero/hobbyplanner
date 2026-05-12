@@ -5,15 +5,24 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Domain\Entity;
 
 use App\Domain\Entity\WorkSession;
+use App\Domain\Exception\ValidationException;
 use App\Domain\ValueObject\ItemId;
 use App\Domain\ValueObject\ProjectId;
 use App\Domain\ValueObject\UserId;
-use App\Domain\ValueObject\WorkSessionId;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 
 final class WorkSessionTest extends TestCase
 {
+    public function testStartNowCreatesOpenSession(): void
+    {
+        $session = $this->createOpenSession();
+
+        $this->assertNotNull($session->id());
+        $this->assertNotNull($session->startedAt());
+        $this->assertNull($session->endedAt());
+    }
+
     public function testFinish(): void
     {
         $session = $this->createOpenSession();
@@ -34,16 +43,9 @@ final class WorkSessionTest extends TestCase
 
     public function testDurationSecondsClosedSession(): void
     {
-        $start = new DateTimeImmutable('2026-01-01 10:00:00');
-        $end   = new DateTimeImmutable('2026-01-01 11:30:00');
-
-        $session = new WorkSession(
-            WorkSessionId::create(),
-            ProjectId::create(),
-            ItemId::create(),
-            UserId::create(),
-            $start,
-            $end,
+        $session = $this->createSessionWithDates(
+            new DateTimeImmutable('2026-01-01 10:00:00'),
+            new DateTimeImmutable('2026-01-01 11:30:00'),
         );
 
         $this->assertSame(5400, $session->durationSeconds());
@@ -51,16 +53,9 @@ final class WorkSessionTest extends TestCase
 
     public function testDurationHours(): void
     {
-        $start = new DateTimeImmutable('2026-01-01 10:00:00');
-        $end   = new DateTimeImmutable('2026-01-01 11:30:00');
-
-        $session = new WorkSession(
-            WorkSessionId::create(),
-            ProjectId::create(),
-            ItemId::create(),
-            UserId::create(),
-            $start,
-            $end,
+        $session = $this->createSessionWithDates(
+            new DateTimeImmutable('2026-01-01 10:00:00'),
+            new DateTimeImmutable('2026-01-01 11:30:00'),
         );
 
         $this->assertSame(1.5, $session->durationHours());
@@ -68,16 +63,9 @@ final class WorkSessionTest extends TestCase
 
     public function testWorkedDayUsesEndedAt(): void
     {
-        $start = new DateTimeImmutable('2026-01-01 23:00:00');
-        $end   = new DateTimeImmutable('2026-01-02 01:00:00');
-
-        $session = new WorkSession(
-            WorkSessionId::create(),
-            ProjectId::create(),
-            ItemId::create(),
-            UserId::create(),
-            $start,
-            $end,
+        $session = $this->createSessionWithDates(
+            new DateTimeImmutable('2026-01-01 23:00:00'),
+            new DateTimeImmutable('2026-01-02 01:00:00'),
         );
 
         $this->assertSame('2026-01-02', $session->workedDay());
@@ -102,15 +90,35 @@ final class WorkSessionTest extends TestCase
         $this->assertSame($newEnd, $session->endedAt());
     }
 
+    public function testUpdateEndBeforeStartThrows(): void
+    {
+        $session = $this->createOpenSession();
+
+        $this->expectException(ValidationException::class);
+        $session->update(
+            new DateTimeImmutable('2026-03-01 12:00:00'),
+            new DateTimeImmutable('2026-03-01 09:00:00'),
+        );
+    }
+
     private function createOpenSession(): WorkSession
     {
-        return new WorkSession(
-            WorkSessionId::create(),
+        return WorkSession::startNow(
             ProjectId::create(),
             ItemId::create(),
             UserId::create(),
-            new DateTimeImmutable(),
-            null,
         );
+    }
+
+    private function createSessionWithDates(DateTimeImmutable $start, ?DateTimeImmutable $end): WorkSession
+    {
+        $session = WorkSession::startNow(
+            ProjectId::create(),
+            ItemId::create(),
+            UserId::create(),
+        );
+        $session->update($start, $end);
+
+        return $session;
     }
 }

@@ -1,6 +1,18 @@
 <template>
-  <div v-if="est" class="p-5 bg-white shadow-sm rounded-lg border border-gray-200 space-y-4">
-    <h2 class="text-lg font-semibold text-gray-800">Estimación</h2>
+  <div
+    v-if="est"
+    class="p-5 bg-white shadow-sm rounded-lg border border-gray-200 space-y-4 transition-shadow duration-300"
+    :class="{ 'ring-2 ring-blue-400/60 shadow-blue-100 shadow-md': highlighting }"
+  >
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-gray-800">Estimación</h2>
+      <span
+        v-if="progressPercent >= 100"
+        class="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700"
+      >
+        Completado
+      </span>
+    </div>
 
     <!-- Progreso horas -->
     <div>
@@ -17,9 +29,6 @@
       </div>
       <p class="text-xs text-gray-400 mt-1">
         {{ formatHours(est.remainingHours) }} restantes
-        <span v-if="progressPercent >= 100" class="text-green-600 font-medium ml-1">
-          — Completado
-        </span>
       </p>
     </div>
 
@@ -68,12 +77,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useProjectStore } from '@/stores/projectStore'
 import { formatHours } from '@/utils/format'
 
 const store = useProjectStore()
 const est   = computed(() => store.estimation)
+
+const highlighting    = ref(false)
+let   highlightTimer: ReturnType<typeof setTimeout> | undefined
+
+watch(est, (newVal, oldVal) => {
+  if (!oldVal || !newVal) return
+  highlighting.value = true
+  clearTimeout(highlightTimer)
+  highlightTimer = setTimeout(() => (highlighting.value = false), 800)
+}, { deep: true })
 
 const progressPercent = computed(() => {
   if (!est.value || est.value.estimatedHours === 0) return 0

@@ -28,4 +28,16 @@ final class ProjectDTO
             updatedAt:   $project->updatedAt()->format('c'),
         );
     }
+
+    public function toArray(): array
+    {
+        return [
+            'id'          => $this->id,
+            'name'        => $this->name,
+            'description' => $this->description,
+            'status'      => $this->status,
+            'createdAt'   => $this->createdAt,
+            'updatedAt'   => $this->updatedAt,
+        ];
+    }
 }

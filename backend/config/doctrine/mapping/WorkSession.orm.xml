@@ -18,9 +18,9 @@
         <field name="endedAt" type="datetime_immutable" column="ended_at" nullable="true"/>
 
         <indexes>
-            <index name="idx_user_id" columns="user_id"/>
-            <index name="idx_project_id" columns="project_id"/>
-            <index name="idx_item_id" columns="item_id"/>
+            <index name="idx_work_sessions_user_id" columns="user_id"/>
+            <index name="idx_work_sessions_project_id" columns="project_id"/>
+            <index name="idx_work_sessions_item_id" columns="item_id"/>
         </indexes>
 
     </entity>

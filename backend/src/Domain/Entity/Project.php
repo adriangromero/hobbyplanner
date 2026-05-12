@@ -17,20 +17,25 @@ final class Project implements OwnableResource
     private UserId $userId;
     private string $name;
     private string $description;
-    private string $status;
+    private ProjectStatus $status;
     private DateTimeImmutable $createdAt;
     private DateTimeImmutable $updatedAt;
 
-    public function __construct(ProjectId $id, UserId $userId, string $name, string $description)
+    private function __construct(ProjectId $id, UserId $userId, string $name, string $description)
     {
         $this->id        = $id;
         $this->userId    = $userId;
-        $this->status    = ProjectStatus::ACTIVE->value;
+        $this->status    = ProjectStatus::ACTIVE;
         $this->createdAt = new DateTimeImmutable();
         $this->updatedAt = new DateTimeImmutable();
 
         $this->rename($name);
         $this->updateDescription($description);
+    }
+
+    public static function create(UserId $userId, string $name, string $description): self
+    {
+        return new self(ProjectId::create(), $userId, $name, $description);
     }
 
     public function rename(string $name): void
@@ -51,13 +56,13 @@ final class Project implements OwnableResource
 
     public function markAsCompleted(): void
     {
-        $this->status    = ProjectStatus::COMPLETED->value;
+        $this->status    = ProjectStatus::COMPLETED;
         $this->updatedAt = new DateTimeImmutable();
     }
 
     public function markAsActive(): void
     {
-        $this->status    = ProjectStatus::ACTIVE->value;
+        $this->status    = ProjectStatus::ACTIVE;
         $this->updatedAt = new DateTimeImmutable();
     }
 
@@ -66,7 +71,7 @@ final class Project implements OwnableResource
     public function ownerId(): UserId            { return $this->userId; }
     public function name(): string               { return $this->name; }
     public function description(): string        { return $this->description; }
-    public function status(): ProjectStatus      { return ProjectStatus::from($this->status); }
+    public function status(): ProjectStatus      { return $this->status; }
     public function createdAt(): DateTimeImmutable { return $this->createdAt; }
     public function updatedAt(): DateTimeImmutable { return $this->updatedAt; }
 }

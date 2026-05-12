@@ -14,7 +14,7 @@ final class UserTest extends TestCase
     public function testCreate(): void
     {
         $user = User::create(
-            new Email('john@example.com'),
+            Email::fromString('john@example.com'),
             'hashed-password',
             'John Doe',
         );
@@ -22,7 +22,7 @@ final class UserTest extends TestCase
         $this->assertSame('john@example.com', $user->email()->value());
         $this->assertSame('John Doe', $user->name());
         $this->assertTrue($user->isActive());
-        $this->assertContains('ROLE_USER', $user->getRoles());
+        $this->assertContains('ROLE_USER', $user->roles());
     }
 
     public function testUpdateName(): void
@@ -60,17 +60,17 @@ final class UserTest extends TestCase
         $this->assertTrue($user->isActive());
     }
 
-    public function testGetUserIdentifierReturnsEmail(): void
+    public function testEmailReturnsCorrectValue(): void
     {
         $user = $this->createUser();
 
-        $this->assertSame('john@example.com', $user->getUserIdentifier());
+        $this->assertSame('john@example.com', $user->email()->value());
     }
 
     private function createUser(): User
     {
         return User::create(
-            new Email('john@example.com'),
+            Email::fromString('john@example.com'),
             'hashed-password',
             'John Doe',
         );

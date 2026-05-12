@@ -6,37 +6,21 @@
 
     <!-- Estado -->
     <td class="p-3">
-      <div class="flex items-center gap-2">
-        <template v-if="confirmingToggle">
-          <span class="text-xs font-medium" :class="isCompleted ? 'text-gray-600' : 'text-green-700'">
-            {{ isCompleted ? '¿Reactivar?' : '¿Completar?' }}
-          </span>
-          <button
-            @click="handleToggleStatus"
-            :disabled="loading"
-            class="text-xs bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded transition disabled:opacity-50"
-          >
-            Sí
-          </button>
-          <button
-            @click="confirmingToggle = false"
-            class="text-xs text-gray-500 hover:text-gray-700 transition"
-          >
-            No
-          </button>
-        </template>
+      <div class="flex flex-col items-center gap-1">
         <button
-          v-else
-          @click="confirmingToggle = true"
+          @click="handleToggleStatus"
           :disabled="loading"
-          class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors disabled:opacity-50"
+          class="w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 disabled:opacity-50"
           :class="isCompleted
-            ? 'bg-green-500 border-green-500 text-white'
-            : 'border-gray-300 hover:border-green-400'"
+            ? 'bg-green-500 border-green-500 text-white scale-110'
+            : 'border-gray-300 hover:border-green-400 hover:scale-110'"
           :title="isCompleted ? 'Marcar como pendiente' : 'Marcar como completado'"
         >
           <span v-if="isCompleted" class="text-xs">&#10003;</span>
         </button>
+        <span v-if="isCompleted" class="text-[10px] font-medium text-green-600 leading-none">
+          Completado
+        </span>
       </div>
     </td>
 
@@ -94,62 +78,47 @@
 
         <!-- Stop con confirm inline -->
         <template v-if="isActive">
-          <template v-if="confirmingStop">
-            <span class="text-xs text-red-600 font-medium">¿Finalizar?</span>
+          <Transition name="fade" mode="out-in">
+            <div v-if="confirmingStop" key="confirm" class="flex items-center gap-1">
+              <span class="text-xs text-red-600 font-medium">¿Finalizar?</span>
+              <button
+                @click="handleStop"
+                :disabled="loading"
+                class="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded transition disabled:opacity-50"
+              >
+                Sí
+              </button>
+              <button
+                @click="confirmingStop = false"
+                class="text-xs text-gray-500 hover:text-gray-700 transition"
+              >
+                No
+              </button>
+            </div>
             <button
-              @click="handleStop"
+              v-else
+              key="stop-btn"
+              @click="confirmingStop = true"
               :disabled="loading"
-              class="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded transition disabled:opacity-50"
+              class="text-red-600 hover:text-red-700 hover:scale-125 transition-all duration-150 disabled:opacity-50"
+              title="Parar sesión"
             >
-              Sí
+              &#9209;
             </button>
-            <button
-              @click="confirmingStop = false"
-              class="text-xs text-gray-500 hover:text-gray-700 transition"
-            >
-              No
-            </button>
-          </template>
-          <button
-            v-else
-            @click="confirmingStop = true"
-            :disabled="loading"
-            class="text-red-600 hover:text-red-700 transition-colors disabled:opacity-50"
-            title="Parar sesión"
-          >
-            &#9209;
-          </button>
+          </Transition>
         </template>
 
-        <!-- Start con confirm inline (solo si no está completado) -->
-        <template v-else-if="!editingItem && !deletingItem && !isCompleted">
-          <template v-if="confirmingStart">
-            <span class="text-xs text-green-700 font-medium">¿Iniciar?</span>
-            <button
-              @click="handleStart"
-              :disabled="loading"
-              class="text-xs bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded transition disabled:opacity-50"
-            >
-              Sí
-            </button>
-            <button
-              @click="confirmingStart = false"
-              class="text-xs text-gray-500 hover:text-gray-700 transition"
-            >
-              No
-            </button>
-          </template>
-          <button
-            v-else
-            @click="tryStart"
-            :disabled="loading || anotherSessionActive"
-            :class="anotherSessionActive ? 'text-gray-300 cursor-not-allowed' : 'text-green-600 hover:text-green-700'"
-            class="transition-colors disabled:opacity-50"
-            :title="anotherSessionActive ? 'Sesión activa en ' + timer.activeItemName : 'Iniciar sesión'"
-          >
-            &#9654;
-          </button>
-        </template>
+        <!-- Start (solo si no está completado) -->
+        <button
+          v-else-if="!editingItem && !deletingItem && !isCompleted"
+          @click="handleStart"
+          :disabled="loading || anotherSessionActive"
+          :class="anotherSessionActive ? 'text-gray-300 cursor-not-allowed' : 'text-green-600 hover:text-green-700 hover:scale-125'"
+          class="transition-all duration-150 disabled:opacity-50"
+          :title="anotherSessionActive ? 'Sesión activa en ' + timer.activeItemName : 'Iniciar sesión'"
+        >
+          &#9654;
+        </button>
 
         <!-- Separador -->
         <span class="text-gray-200">|</span>
@@ -222,26 +191,11 @@ import { useTimerStore } from '@/stores/timerStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { useBlockingAction } from '@/composables/useBlockingAction'
 import { useToast } from '@/composables/useToast'
+import { itemApi } from '@/api/itemApi'
+import { formatHours } from '@/utils/format'
 import BlockingOverlay from '@/components/ui/BlockingOverlay.vue'
 import SessionsModal from './SessionsModal.vue'
-import { formatHours } from '@/utils/format'
-import api from '@/api/axios'
-
-interface OpenSession {
-  id:        string
-  startedAt: string
-}
-
-interface Item {
-  id:             string
-  name:           string
-  estimatedHours: number
-  status:         'pending' | 'in_progress' | 'completed'
-  createdAt:      string
-  totalSessions:  number
-  totalHours:     number
-  openSession:    OpenSession | null
-}
+import type { Item } from '@/types/models'
 
 const props = defineProps<{ item: Item }>()
 
@@ -251,9 +205,7 @@ const toast        = useToast()
 const { loading, loadingMessage, run } = useBlockingAction()
 
 // Timer
-const confirmingStart  = ref(false)
-const confirmingStop   = ref(false)
-const confirmingToggle = ref(false)
+const confirmingStop = ref(false)
 
 // Item edit/delete
 const editingItem   = ref(false)
@@ -278,11 +230,9 @@ const isCompleted = computed(() => props.item.status === 'completed')
 // ── Status ──────────────────────────────────────────────
 
 async function handleToggleStatus() {
-  confirmingToggle.value = false
-
   await run('Actualizando estado...', async () => {
     try {
-      const { data } = await api.put(`/items/${props.item.id}/toggle-status`)
+      const data = await itemApi.toggleStatus(props.item.id)
       projectStore.toggleItemStatus(props.item.id, data.status)
       toast.success(
         data.status === 'completed'
@@ -329,10 +279,11 @@ async function handleUpdateItem() {
 
   await run('Guardando item...', async () => {
     try {
-      const { data } = await api.put(`/items/${props.item.id}`, {
-        name:           editForm.value.name.trim(),
-        estimatedHours: parseFloat(editForm.value.estimatedHours),
-      })
+      const data = await itemApi.update(
+        props.item.id,
+        editForm.value.name.trim(),
+        parseFloat(editForm.value.estimatedHours),
+      )
 
       projectStore.updateItem({
         id:             data.id,
@@ -352,7 +303,7 @@ async function handleUpdateItem() {
 async function handleDeleteItem() {
   await run('Eliminando item...', async () => {
     try {
-      await api.delete(`/items/${props.item.id}`)
+      await itemApi.remove(props.item.id)
       projectStore.removeItem(props.item.id)
       toast.success(`Item "${props.item.name}" eliminado`)
     } catch {
@@ -363,20 +314,17 @@ async function handleDeleteItem() {
 
 // ── Timer ────────────────────────────────────────────────
 
-function tryStart() {
+async function handleStart() {
   if (anotherSessionActive.value) {
     toast.error('Finaliza la sesión de "' + timer.activeItemName + '" primero')
     return
   }
-  confirmingStart.value = true
-}
-
-async function handleStart() {
-  confirmingStart.value = false
 
   await run('Iniciando sesión...', async () => {
     try {
-      await timer.start(props.item.id, props.item.name, projectStore.currentProject!.id)
+      const projectId = projectStore.currentProject?.id
+      if (!projectId) return
+      await timer.start(props.item.id, props.item.name, projectId)
       toast.success(`Sesión iniciada — ${props.item.name}`)
     } catch {
       toast.error('Error al iniciar la sesión')
@@ -400,3 +348,14 @@ async function handleStop() {
   })
 }
 </script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

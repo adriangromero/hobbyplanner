@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Controller\Api;
 
+use App\Application\Port\CurrentUserProvider;
 use App\Application\UseCase\Auth\Login\LoginRequest;
 use App\Application\UseCase\Auth\Login\LoginUseCase;
 use App\Application\UseCase\User\CreateUser\CreateUserRequest;
 use App\Application\UseCase\User\CreateUser\CreateUserUseCase;
-use App\Domain\Repository\UserRepositoryInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,26 +18,20 @@ use Symfony\Component\Routing\Annotation\Route;
 final class AuthController extends ApiController
 {
     public function __construct(
-        UserRepositoryInterface            $userRepository,
+        CurrentUserProvider              $currentUserProvider,
         private readonly CreateUserUseCase $createUserUseCase,
         private readonly LoginUseCase      $loginUseCase,
     ) {
-        parent::__construct($userRepository);
+        parent::__construct($currentUserProvider);
     }
 
     #[Route('/register', name: 'api_auth_register', methods: ['POST'])]
     public function register(Request $request): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
-
-        $this->validateRequired($data, ['email', 'password', 'name']);
+        $data = $this->jsonBody($request, ['email', 'password', 'name']);
 
         $response = $this->createUserUseCase->execute(
-            new CreateUserRequest(
-                $data['email'],
-                $data['password'],
-                $data['name']
-            )
+            new CreateUserRequest($data['email'], $data['password'], $data['name'])
         );
 
         return new JsonResponse([
@@ -51,15 +45,10 @@ final class AuthController extends ApiController
     #[Route('/login', name: 'api_auth_login', methods: ['POST'])]
     public function login(Request $request): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
-
-        $this->validateRequired($data, ['email', 'password']);
+        $data = $this->jsonBody($request, ['email', 'password']);
 
         $response = $this->loginUseCase->execute(
-            new LoginRequest(
-                $data['email'],
-                $data['password']
-            )
+            new LoginRequest($data['email'], $data['password'])
         );
 
         return new JsonResponse([

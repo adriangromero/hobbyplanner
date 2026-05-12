@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Application\UseCase\Inventory;
 
 use App\Application\DTO\ItemDTO;
-use App\Application\DTO\WorkSessionDTO;
 use App\Domain\Entity\Item;
+use App\Domain\Entity\WorkSession;
 use App\Domain\Repository\ItemRepositoryInterface;
 use App\Domain\Repository\ProjectRepositoryInterface;
 use App\Domain\Repository\WorkSessionRepositoryInterface;
@@ -23,6 +23,7 @@ final class ListInventoryUseCase
     {
         $items    = $this->itemRepository->findByUser($request->userId());
         $projects = $this->projectRepository->findByUser($request->userId());
+        $sessions = $this->sessionRepository->findByUser($request->userId());
 
         // Index project names by ID
         $projectNames = [];
@@ -30,13 +31,19 @@ final class ListInventoryUseCase
             $projectNames[$project->id()->value()] = $project->name();
         }
 
-        $itemDTOs = array_map(
-            function (Item $item) use ($projectNames) {
-                $sessions   = $this->sessionRepository->findByItem($item->id());
-                $totalHours = 0.0;
-                $completed  = 0;
+        // Group sessions by itemId — single pass, no N+1
+        $sessionsByItem = [];
+        foreach ($sessions as $session) {
+            $sessionsByItem[$session->itemId()->value()][] = $session;
+        }
 
-                foreach ($sessions as $session) {
+        $itemDTOs = array_map(
+            function (Item $item) use ($projectNames, $sessionsByItem) {
+                $itemSessions = $sessionsByItem[$item->id()->value()] ?? [];
+                $totalHours   = 0.0;
+                $completed    = 0;
+
+                foreach ($itemSessions as $session) {
                     if ($session->endedAt() !== null) {
                         $totalHours += $session->durationHours();
                         $completed++;

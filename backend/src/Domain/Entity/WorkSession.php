@@ -14,7 +14,7 @@ use DateTimeImmutable;
 
 final class WorkSession implements OwnableResource
 {
-    public function __construct(
+    private function __construct(
         private WorkSessionId      $id,
         private ProjectId          $projectId,
         private ItemId             $itemId,
@@ -22,6 +22,21 @@ final class WorkSession implements OwnableResource
         private DateTimeImmutable  $startedAt,
         private ?DateTimeImmutable $endedAt,
     ) {}
+
+    public static function startNow(
+        ProjectId $projectId,
+        ItemId    $itemId,
+        UserId    $userId,
+    ): self {
+        return new self(
+            WorkSessionId::create(),
+            $projectId,
+            $itemId,
+            $userId,
+            new DateTimeImmutable(),
+            null,
+        );
+    }
 
     public function id(): WorkSessionId { return $this->id; }
     public function projectId(): ProjectId { return $this->projectId; }

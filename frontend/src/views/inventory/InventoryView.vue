@@ -115,10 +115,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useProjectStore } from '@/stores/projectStore'
-import type { InventoryItem } from '@/stores/projectStore'
 import { useToast } from '@/composables/useToast'
 import { formatHours, formatDate } from '@/utils/format'
-import api from '@/api/axios'
+import { itemApi } from '@/api/itemApi'
+import type { InventoryItem } from '@/types/models'
 
 const store = useProjectStore()
 const toast = useToast()
@@ -163,8 +163,8 @@ async function toggleStatus(item: InventoryItem) {
   confirmingId.value = null
   togglingId.value = item.id
   try {
-    const { data } = await api.put(`/items/${item.id}/toggle-status`)
-    item.status = data.status
+    const data = await itemApi.toggleStatus(item.id)
+    item.status = data.status as InventoryItem['status']
     toast.success(
       data.status === 'completed'
         ? `"${item.name}" completado`

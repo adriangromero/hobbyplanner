@@ -19,11 +19,11 @@ final class Item implements OwnableResource
     private UserId            $userId;
     private string            $name;
     private float             $estimatedHours;
-    private string            $status;
+    private ItemStatus        $status;
     private DateTimeImmutable $createdAt;
     private DateTimeImmutable $updatedAt;
 
-    public function __construct(
+    private function __construct(
         ItemId    $id,
         ProjectId $projectId,
         UserId    $userId,
@@ -33,13 +33,21 @@ final class Item implements OwnableResource
         $this->id        = $id;
         $this->projectId = $projectId;
         $this->userId    = $userId;
-        $this->status    = ItemStatus::PENDING->value;
+        $this->status    = ItemStatus::PENDING;
         $this->createdAt = new DateTimeImmutable();
         $this->updatedAt = new DateTimeImmutable();
 
-        // Usamos los métodos para no duplicar validación
         $this->rename($name);
         $this->updateEstimatedHours($estimatedHours);
+    }
+
+    public static function create(
+        ProjectId $projectId,
+        UserId    $userId,
+        string    $name,
+        float     $estimatedHours,
+    ): self {
+        return new self(ItemId::create(), $projectId, $userId, $name, $estimatedHours);
     }
 
     public function id(): ItemId                  { return $this->id; }
@@ -48,7 +56,7 @@ final class Item implements OwnableResource
     public function ownerId(): UserId              { return $this->userId; }
     public function name(): string                 { return $this->name; }
     public function estimatedHours(): float        { return $this->estimatedHours; }
-    public function status(): ItemStatus           { return ItemStatus::from($this->status); }
+    public function status(): ItemStatus           { return $this->status; }
     public function createdAt(): DateTimeImmutable { return $this->createdAt; }
     public function updatedAt(): DateTimeImmutable { return $this->updatedAt; }
 
@@ -80,19 +88,19 @@ final class Item implements OwnableResource
 
     public function markAsCompleted(): void
     {
-        $this->status    = ItemStatus::COMPLETED->value;
+        $this->status    = ItemStatus::COMPLETED;
         $this->updatedAt = new DateTimeImmutable();
     }
 
     public function markAsInProgress(): void
     {
-        $this->status    = ItemStatus::IN_PROGRESS->value;
+        $this->status    = ItemStatus::IN_PROGRESS;
         $this->updatedAt = new DateTimeImmutable();
     }
 
     public function markAsPending(): void
     {
-        $this->status    = ItemStatus::PENDING->value;
+        $this->status    = ItemStatus::PENDING;
         $this->updatedAt = new DateTimeImmutable();
     }
 }

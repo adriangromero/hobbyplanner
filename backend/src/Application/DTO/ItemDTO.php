@@ -41,4 +41,20 @@ final class ItemDTO
             projectName:    $projectName,
         );
     }
+
+    public function toArray(): array
+    {
+        return [
+            'id'             => $this->id,
+            'name'           => $this->name,
+            'estimatedHours' => $this->estimatedHours,
+            'status'         => $this->status,
+            'createdAt'      => $this->createdAt,
+            'totalSessions'  => $this->totalSessions,
+            'totalHours'     => $this->totalHours,
+            'openSession'    => $this->openSession?->toArray(),
+            'projectId'      => $this->projectId,
+            'projectName'    => $this->projectName,
+        ];
+    }
 }

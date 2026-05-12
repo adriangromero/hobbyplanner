@@ -5,35 +5,16 @@ declare(strict_types=1);
 namespace App\Infrastructure\Persistence\Doctrine\Type;
 
 use App\Domain\ValueObject\UserId;
-use Doctrine\DBAL\Platforms\AbstractPlatform;
-use Doctrine\DBAL\Types\Type;
 
-final class UserIdType extends Type
+final class UserIdType extends AbstractIdType
 {
-    public const NAME = 'user_id';
-
-    public function convertToPHPValue(mixed $value, AbstractPlatform $platform): mixed
+    protected static function idClass(): string
     {
-        return $value === null ? null : UserId::fromString($value);
+        return UserId::class;
     }
 
-    public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): mixed
+    protected static function typeName(): string
     {
-        return $value instanceof UserId ? $value->value() : $value;
-    }
-
-    public function getSQLDeclaration(array $fieldDeclaration, AbstractPlatform $platform): string
-    {
-        return $platform->getGuidTypeDeclarationSQL($fieldDeclaration);
-    }
-
-    public function getName(): string
-    {
-        return self::NAME;
-    }
-
-    public function requiresSQLCommentHint(AbstractPlatform $platform): bool
-    {
-        return true;
+        return 'user_id';
     }
 }

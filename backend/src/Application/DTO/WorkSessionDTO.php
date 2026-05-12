@@ -28,4 +28,16 @@ final class WorkSessionDTO
             durationHours: $session->durationHours(),
         );
     }
+
+    public function toArray(): array
+    {
+        return [
+            'id'            => $this->id,
+            'itemId'        => $this->itemId,
+            'projectId'     => $this->projectId,
+            'startedAt'     => $this->startedAt,
+            'endedAt'       => $this->endedAt,
+            'durationHours' => $this->durationHours,
+        ];
+    }
 }

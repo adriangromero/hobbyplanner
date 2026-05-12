@@ -1,9 +1,16 @@
 # Dependencies
 frontend/node_modules/
+backend/vendor/
 
 # Environment (local overrides with secrets)
 .env.local
 .env.*.local
+
+# Private keys / certificates (safety net)
+*.pem
+*.key
+*.p12
+*.pfx
 
 # IDE
 .idea/
@@ -15,6 +22,15 @@ frontend/node_modules/
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# Symfony runtime & cache
+backend/var/
+backend/.phpunit.cache/
+backend/config/jwt/
 
 # Build output
 frontend/dist/
+
+# Logs
+*.log

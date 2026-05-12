@@ -86,16 +86,6 @@ final class Version20260308000001 extends AbstractMigration
                 CONSTRAINT fk_work_sessions_user    FOREIGN KEY (user_id)    REFERENCES users (id)    ON DELETE CASCADE
             ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB
         ');
-
-        // ── Doctrine migrations tracking ─────────────────────
-        $this->addSql('
-            CREATE TABLE IF NOT EXISTS doctrine_migration_versions (
-                version        VARCHAR(191) NOT NULL,
-                executed_at    DATETIME     DEFAULT NULL,
-                execution_time INT          DEFAULT NULL,
-                PRIMARY KEY (version)
-            ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB
-        ');
     }
 
     public function down(Schema $schema): void

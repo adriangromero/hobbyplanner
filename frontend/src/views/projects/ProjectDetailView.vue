@@ -51,9 +51,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProjectStore } from '@/stores/projectStore'
 import { useToast } from '@/composables/useToast'
+import { projectApi } from '@/api/projectApi'
 import ItemsTable from '@/components/items/ItemsTable.vue'
 import ProjectEstimationCard from '@/components/projects/ProjectEstimationCard.vue'
-import api from '@/api/axios'
 
 const store = useProjectStore()
 const route = useRoute()
@@ -73,7 +73,7 @@ async function handleToggleProjectStatus() {
   togglingStatus.value = true
 
   try {
-    const { data } = await api.put(`/projects/${project.value.id}/toggle-status`)
+    const data = await projectApi.toggleStatus(project.value.id)
     store.toggleProjectStatus(data.status)
     store.refreshEstimation()
     toast.success(

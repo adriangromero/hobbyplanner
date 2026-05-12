@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import api from '@/api/axios'
+import { authApi } from '@/api/authApi'
+import { TokenIntrospector } from '@/auth/TokenIntrospector'
 
 type User = {
   id: string
@@ -7,16 +8,32 @@ type User = {
   name: string
 }
 
+const TOKEN_KEY = 'jwt_token'
+
+function loadStoredToken(): string | null {
+  const token = localStorage.getItem(TOKEN_KEY)
+  if (!token) return null
+
+  if (TokenIntrospector.isExpired(token)) {
+    localStorage.removeItem(TOKEN_KEY)
+    return null
+  }
+
+  return token
+}
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null as User | null,
-    token: localStorage.getItem('jwt_token') as string | null,
+    token: loadStoredToken(),
     loading: false,
     error: null as string | null,
   }),
 
   getters: {
-    isAuthenticated: (state) => !!state.token,
+    isAuthenticated: (state: { token: string | null }): boolean => {
+      return !!state.token && !TokenIntrospector.isExpired(state.token)
+    },
   },
 
   actions: {
@@ -25,13 +42,12 @@ export const useAuthStore = defineStore('auth', {
       this.error   = null
 
       try {
-        const { data } = await api.post('/auth/login', { email, password })
+        const data = await authApi.login(email, password)
 
         this.token = data.token
         this.user  = data.user
 
-        localStorage.setItem('jwt_token', data.token)
-
+        localStorage.setItem(TOKEN_KEY, data.token)
       } catch (e: any) {
         this.error = e.response?.data?.error ?? 'Error al iniciar sesión'
         throw e
@@ -45,8 +61,7 @@ export const useAuthStore = defineStore('auth', {
       this.error   = null
 
       try {
-        const { data } = await api.post('/auth/register', { email, password, name })
-        return data
+        return await authApi.register(email, password, name)
       } catch (e: any) {
         this.error = e.response?.data?.error ?? 'Error al registrarse'
         throw e
@@ -55,11 +70,15 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    logout() {
+    clearSession() {
       this.token = null
       this.user  = null
-      localStorage.removeItem('jwt_token')
+      localStorage.removeItem(TOKEN_KEY)
+    },
+
+    logout() {
+      this.clearSession()
       window.location.href = '/login'
-    }
-  }
+    },
+  },
 })

@@ -7,20 +7,22 @@ namespace App\Tests\Unit\Domain\Service;
 use App\Domain\Entity\Item;
 use App\Domain\Entity\WorkSession;
 use App\Domain\Service\ProjectEstimator;
-use App\Domain\ValueObject\ItemId;
 use App\Domain\ValueObject\ProjectId;
 use App\Domain\ValueObject\UserId;
-use App\Domain\ValueObject\WorkSessionId;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 
 final class ProjectEstimatorTest extends TestCase
 {
     private ProjectEstimator $estimator;
+    private ProjectId $projectId;
+    private UserId $userId;
 
     protected function setUp(): void
     {
         $this->estimator = new ProjectEstimator();
+        $this->projectId = ProjectId::create();
+        $this->userId    = UserId::create();
     }
 
     public function testNoSessionsReturnsZeroVelocity(): void
@@ -83,7 +85,7 @@ final class ProjectEstimatorTest extends TestCase
         $this->assertSame(3, $estimation->activeDays());
     }
 
-    public function testWorkedMoreThanEstimatedClamsToZeroRemaining(): void
+    public function testWorkedMoreThanEstimatedClampsToZeroRemaining(): void
     {
         $item     = $this->createItem(2.0);
         $sessions = [
@@ -102,13 +104,11 @@ final class ProjectEstimatorTest extends TestCase
     public function testOpenSessionIsIgnored(): void
     {
         $item = $this->createItem(10.0);
-        $openSession = new WorkSession(
-            WorkSessionId::create(),
-            ProjectId::create(),
+
+        $openSession = WorkSession::startNow(
+            $item->projectId(),
             $item->id(),
-            UserId::create(),
-            new DateTimeImmutable(),
-            null,
+            $item->userId(),
         );
 
         $estimation = $this->estimator->estimate(
@@ -123,15 +123,13 @@ final class ProjectEstimatorTest extends TestCase
 
     public function testCompletedItemsDoNotCountAsRemaining(): void
     {
-        // 2 items: pendingItem (8h) + completedItem (5h)
-        // 2h worked on pending, 3h worked on completed
         $pendingItem   = $this->createItem(8.0);
         $completedItem = $this->createItem(5.0);
         $completedItem->markAsCompleted();
 
         $sessions = [
-            $this->sessionForItem($pendingItem,   '2026-03-01 10:00:00', '2026-03-01 12:00:00'), // 2h
-            $this->sessionForItem($completedItem, '2026-03-02 10:00:00', '2026-03-02 13:00:00'), // 3h
+            $this->sessionForItem($pendingItem,   '2026-03-01 10:00:00', '2026-03-01 12:00:00'),
+            $this->sessionForItem($completedItem, '2026-03-02 10:00:00', '2026-03-02 13:00:00'),
         ];
 
         $estimation = $this->estimator->estimate(
@@ -140,14 +138,9 @@ final class ProjectEstimatorTest extends TestCase
             $sessions,
         );
 
-        // Total estimated = 8 + 5 = 13h (shows full project scope)
         $this->assertSame(13.0, $estimation->estimatedHours());
-        // Total worked = 2 + 3 = 5h (all sessions count for velocity)
         $this->assertSame(5.0, $estimation->workedHours());
-        // Remaining = pending estimated (8) - pending worked (2) = 6h
-        // NOT 13 - 5 - 5 = 3h (old buggy formula)
         $this->assertSame(6.0, $estimation->remainingHours());
-        // Velocity uses total worked hours / active days
         $this->assertEqualsWithDelta(2.5, $estimation->velocityPerActiveDay(), 0.01);
     }
 
@@ -175,10 +168,9 @@ final class ProjectEstimatorTest extends TestCase
 
     private function createItem(float $hours): Item
     {
-        return new Item(
-            ItemId::create(),
-            ProjectId::create(),
-            UserId::create(),
+        return Item::create(
+            $this->projectId,
+            $this->userId,
             'Test Item',
             $hours,
         );
@@ -186,13 +178,13 @@ final class ProjectEstimatorTest extends TestCase
 
     private function sessionForItem(Item $item, string $start, string $end): WorkSession
     {
-        return new WorkSession(
-            WorkSessionId::create(),
+        $session = WorkSession::startNow(
             $item->projectId(),
             $item->id(),
             $item->userId(),
-            new DateTimeImmutable($start),
-            new DateTimeImmutable($end),
         );
+        $session->update(new DateTimeImmutable($start), new DateTimeImmutable($end));
+
+        return $session;
     }
 }

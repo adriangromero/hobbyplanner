@@ -1,13 +1,11 @@
 security:
   password_hashers:
-    App\Domain\Entity\User:
+    App\Infrastructure\Security\SecurityUser:
       algorithm: auto
 
   providers:
     app_user_provider:
-      entity:
-        class: App\Domain\Entity\User
-        property: email
+      id: App\Infrastructure\Security\SecurityUserProvider
 
   firewalls:
     dev:
@@ -22,12 +20,13 @@ security:
   access_control:
     - { path: ^/api/auth/login, roles: PUBLIC_ACCESS }
     - { path: ^/api/auth/register, roles: PUBLIC_ACCESS }
+    - { path: ^/api/health, roles: PUBLIC_ACCESS }
     - { path: ^/api, roles: ROLE_USER }
 
 when@test:
   security:
     password_hashers:
-      App\Domain\Entity\User:
+      App\Infrastructure\Security\SecurityUser:
         algorithm: auto
         cost: 4
         time_cost: 3

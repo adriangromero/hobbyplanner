@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Application\UseCase\Item\UpdateItem;
 
 use App\Domain\ValueObject\ItemId;
-use DateTimeImmutable;
 
 final class UpdateItemRequest
 {

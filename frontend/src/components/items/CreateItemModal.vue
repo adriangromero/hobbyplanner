@@ -60,7 +60,7 @@
 import { ref } from 'vue'
 import { useProjectStore } from '@/stores/projectStore'
 import { useToast } from '@/composables/useToast'
-import api from '@/api/axios'
+import { itemApi } from '@/api/itemApi'
 
 const emit = defineEmits<{ close: [] }>()
 
@@ -87,11 +87,11 @@ async function handleCreate() {
   loading.value = true
 
   try {
-    const { data } = await api.post('/items', {
-      projectId:      projectStore.currentProject!.id,
-      name:           form.value.name.trim(),
-      estimatedHours: parseFloat(form.value.estimatedHours),
-    })
+    const data = await itemApi.create(
+      projectStore.currentProject!.id,
+      form.value.name.trim(),
+      parseFloat(form.value.estimatedHours),
+    )
 
     projectStore.addItem({
       id:             data.id,

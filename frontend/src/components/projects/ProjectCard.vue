@@ -114,16 +114,9 @@ import { useProjectStore } from '@/stores/projectStore'
 import { useBlockingAction } from '@/composables/useBlockingAction'
 import { useToast } from '@/composables/useToast'
 import { formatDate } from '@/utils/format'
+import { projectApi } from '@/api/projectApi'
 import BlockingOverlay from '@/components/ui/BlockingOverlay.vue'
-import api from '@/api/axios'
-
-interface Project {
-  id:           string
-  name:         string
-  description?: string
-  status:       'active' | 'completed'
-  createdAt:    string
-}
+import type { Project } from '@/types/models'
 
 const props = defineProps<{ project: Project }>()
 
@@ -169,15 +162,16 @@ async function handleUpdate() {
 
   await run('Guardando proyecto...', async () => {
     try {
-      const { data } = await api.put(`/projects/${props.project.id}`, {
-        name:        editForm.value.name.trim(),
-        description: editForm.value.description.trim(),
-      })
+      const data = await projectApi.update(
+        props.project.id,
+        editForm.value.name.trim(),
+        editForm.value.description.trim(),
+      )
 
       projectStore.updateProject({
         id:          data.id,
         name:        data.name,
-        description: data.description,
+        description: data.description ?? '',
       })
 
       cancelEdit()
@@ -192,7 +186,7 @@ async function handleUpdate() {
 async function handleDelete() {
   await run('Eliminando proyecto...', async () => {
     try {
-      await api.delete(`/projects/${props.project.id}`)
+      await projectApi.remove(props.project.id)
       projectStore.removeProject(props.project.id)
       toast.success(`Proyecto "${props.project.name}" eliminado`)
     } catch {

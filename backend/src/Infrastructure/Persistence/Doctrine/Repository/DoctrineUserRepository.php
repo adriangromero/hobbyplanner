@@ -11,14 +11,7 @@ use App\Domain\ValueObject\UserId;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * Repository Doctrine que implementa el puerto del dominio.
- *
- * Hexagonal:
- * Domain ← interface ← Infrastructure (Doctrine)
- *
- * @extends ServiceEntityRepository<User>
- */
+/** @extends ServiceEntityRepository<User> */
 final class DoctrineUserRepository extends ServiceEntityRepository implements UserRepositoryInterface
 {
     public function __construct(ManagerRegistry $registry)
@@ -26,13 +19,10 @@ final class DoctrineUserRepository extends ServiceEntityRepository implements Us
         parent::__construct($registry, User::class);
     }
 
-    public function save(User $user, bool $flush = true): void
+    public function save(User $user): void
     {
         $this->getEntityManager()->persist($user);
-
-        if ($flush) {
-            $this->getEntityManager()->flush();
-        }
+        $this->getEntityManager()->flush();
     }
 
     public function findById(UserId $id): ?User
@@ -53,13 +43,10 @@ final class DoctrineUserRepository extends ServiceEntityRepository implements Us
             ->getOneOrNullResult();
     }
 
-    public function delete(User $user, bool $flush = true): void
+    public function delete(User $user): void
     {
         $this->getEntityManager()->remove($user);
-
-        if ($flush) {
-            $this->getEntityManager()->flush();
-        }
+        $this->getEntityManager()->flush();
     }
 
     public function emailExists(Email $email): bool
