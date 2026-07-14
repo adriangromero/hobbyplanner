@@ -12,7 +12,7 @@ export const itemApi = {
     return data
   },
 
-  async toggleStatus(id: string): Promise<{ id: string; status: string }> {
+  async toggleStatus(id: string): Promise<Item> {
     const { data } = await api.put(`/items/${id}/toggle-status`)
     return data
   },

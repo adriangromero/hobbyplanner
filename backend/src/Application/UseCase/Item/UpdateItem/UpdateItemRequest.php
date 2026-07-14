@@ -9,8 +9,8 @@ use App\Domain\ValueObject\ItemId;
 final class UpdateItemRequest
 {
     public function __construct(
-        private readonly string  $itemId,
-        private readonly string  $name,
+        private readonly string $itemId,
+        private readonly string $name,
         private readonly float  $estimatedHours,
     ) {}
 
@@ -18,7 +18,7 @@ final class UpdateItemRequest
     {
         return ItemId::fromString($this->itemId);
     }
-    
+
     public function name(): string
     {
         return $this->name;

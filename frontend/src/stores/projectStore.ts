@@ -31,13 +31,13 @@ export const useProjectStore = defineStore('project', {
       }
     },
 
-    async loadProject(id: string) {
+    async loadProject(id: string, sortBy?: string, direction?: 'asc' | 'desc') {
       this.loading = true
       this.error   = null
 
       try {
         const [detail, estimation] = await Promise.all([
-          projectApi.detail(id),
+          projectApi.detail(id, sortBy, direction),
           projectApi.estimation(id),
         ])
 
@@ -144,21 +144,20 @@ export const useProjectStore = defineStore('project', {
       this.projects = this.projects.filter((p: Project) => p.id !== projectId)
     },
 
-    updateItem(updated: { id: string; name: string; estimatedHours: number; status?: string }) {
+    updateItem(updated: { id: string; name: string; estimatedHours: number }) {
       const item = this.items.find(i => i.id === updated.id)
       if (!item) return
 
       item.name           = updated.name
       item.estimatedHours = updated.estimatedHours
-      if (updated.status) item.status = updated.status as Item['status']
       this.refreshEstimation()
     },
 
-    toggleItemStatus(itemId: string, newStatus: string) {
+    updateItemStatus(itemId: string, status: string) {
       const item = this.items.find(i => i.id === itemId)
       if (!item) return
 
-      item.status = newStatus as Item['status']
+      item.status = status as Item['status']
       this.refreshEstimation()
     },
 

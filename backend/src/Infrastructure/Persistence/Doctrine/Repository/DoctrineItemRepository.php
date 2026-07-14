@@ -7,7 +7,9 @@ namespace App\Infrastructure\Persistence\Doctrine\Repository;
 use App\Domain\Entity\Item;
 use App\Domain\Repository\ItemRepositoryInterface;
 use App\Domain\ValueObject\ItemId;
+use App\Domain\ValueObject\ItemSortField;
 use App\Domain\ValueObject\ProjectId;
+use App\Domain\ValueObject\SortDirection;
 use App\Domain\ValueObject\UserId;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -37,13 +39,20 @@ final class DoctrineItemRepository extends ServiceEntityRepository implements It
             ->getOneOrNullResult();
     }
 
-    public function findByProject(ProjectId $projectId): array
-    {
-        return $this->createQueryBuilder('i')
+    public function findByProject(
+        ProjectId      $projectId,
+        ?ItemSortField $sortBy = null,
+        SortDirection  $direction = SortDirection::ASC,
+    ): array {
+        $field = $sortBy ?? ItemSortField::CREATED_AT;
+        $dir   = strtoupper($direction->value);
+
+        $qb = $this->createQueryBuilder('i')
             ->where('i.projectId = :projectId')
             ->setParameter('projectId', $projectId->value())
-            ->getQuery()
-            ->getResult();
+            ->orderBy('i.' . $field->value, $dir);
+
+        return $qb->getQuery()->getResult();
     }
 
     public function findByUser(UserId $userId): array

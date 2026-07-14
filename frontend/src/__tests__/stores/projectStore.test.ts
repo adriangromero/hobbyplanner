@@ -53,11 +53,22 @@ describe('projectStore', () => {
     expect(store.items[0].estimatedHours).toBe(10)
   })
 
+  it('updateItemStatus updates status', () => {
+    const store = useProjectStore()
+    store.items = [
+      { id: 'i1', name: 'Item', estimatedHours: 2, status: 'pending', createdAt: '2026-01-01', totalSessions: 0, totalHours: 0, openSession: null },
+    ]
+
+    store.updateItemStatus('i1', 'completed')
+
+    expect(store.items[0].status).toBe('completed')
+  })
+
   it('addSessionToItem updates counters and clears openSession', () => {
     const store = useProjectStore()
     store.items = [
       {
-        id: 'i1', name: 'Item', estimatedHours: 5, status: 'in_progress', createdAt: '2026-01-01',
+        id: 'i1', name: 'Item', estimatedHours: 5, status: 'pending', createdAt: '2026-01-01',
         totalSessions: 1, totalHours: 2,
         openSession: { id: 's1', startedAt: '2026-01-01T10:00:00' },
       },

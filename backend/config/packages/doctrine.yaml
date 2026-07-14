@@ -7,8 +7,8 @@ doctrine:
             user_id: App\Infrastructure\Persistence\Doctrine\Type\UserIdType
             email: App\Infrastructure\Persistence\Doctrine\Type\EmailType
             project_id: App\Infrastructure\Persistence\Doctrine\Type\ProjectIdType
-            item_status: App\Infrastructure\Persistence\Doctrine\Type\ItemStatusType
             project_status: App\Infrastructure\Persistence\Doctrine\Type\ProjectStatusType
+            item_status: App\Infrastructure\Persistence\Doctrine\Type\ItemStatusType
         profiling_collect_backtrace: '%kernel.debug%'
         use_savepoints: true
 

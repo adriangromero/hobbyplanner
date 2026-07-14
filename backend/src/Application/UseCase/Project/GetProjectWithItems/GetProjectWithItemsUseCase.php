@@ -34,7 +34,7 @@ final class GetProjectWithItemsUseCase
 
         $this->ownershipGuard->ensureOwnership($project);
 
-        $items          = $this->itemRepository->findByProject($projectId);
+        $items          = $this->itemRepository->findByProject($projectId, $request->sortBy(), $request->direction());
         $sessionsByItem = $this->sessionRepository->findGroupedByItem($projectId);
 
         return new GetProjectWithItemsResponse(

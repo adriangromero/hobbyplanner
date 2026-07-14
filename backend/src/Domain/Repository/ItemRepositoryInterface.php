@@ -6,14 +6,24 @@ namespace App\Domain\Repository;
 
 use App\Domain\Entity\Item;
 use App\Domain\ValueObject\ItemId;
+use App\Domain\ValueObject\ItemSortField;
 use App\Domain\ValueObject\ProjectId;
+use App\Domain\ValueObject\SortDirection;
 use App\Domain\ValueObject\UserId;
 
 interface ItemRepositoryInterface
 {
     public function save(Item $item): void;
     public function findById(ItemId $id): ?Item;
-    public function findByProject(ProjectId $projectId): array;
+
+    /**
+     * @return Item[]
+     */
+    public function findByProject(
+        ProjectId      $projectId,
+        ?ItemSortField $sortBy = null,
+        SortDirection  $direction = SortDirection::ASC,
+    ): array;
 
     /**
      * @return Item[]

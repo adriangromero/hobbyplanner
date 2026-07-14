@@ -6,9 +6,8 @@ namespace App\Domain\ValueObject;
 
 enum ItemStatus: string
 {
-    case PENDING     = 'pending';
-    case IN_PROGRESS = 'in_progress';
-    case COMPLETED   = 'completed';
+    case PENDING   = 'pending';
+    case COMPLETED = 'completed';
 
     public function isCompleted(): bool
     {

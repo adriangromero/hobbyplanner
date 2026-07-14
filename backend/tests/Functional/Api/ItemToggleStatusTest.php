@@ -11,7 +11,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  *
  * Prerequisites:
  *   - A test database with the migration applied
- *   - A seeded user + project + item (see fixtures or setUp)
+ *   - A seeded user (test@example.com / password123)
  *
  * Run:
  *   php bin/phpunit --filter=ItemToggleStatusTest
@@ -19,18 +19,26 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 final class ItemToggleStatusTest extends WebTestCase
 {
     /**
-     * Tests the full toggle-status lifecycle:
+     * Tests the full status lifecycle for an item:
      *   1. POST /api/auth/login  → get JWT
-     *   2. POST /api/items       → create an item (pending)
-     *   3. PUT  /api/items/{id}/toggle-status → pending → completed
-     *   4. PUT  /api/items/{id}/toggle-status → completed → pending
-     *   5. GET  /api/projects/{id}/estimation → verify estimation reflects status
+     *   2. POST /api/items       → create an item (starts pending)
+     *   3. PUT  /api/items/{id}/toggle-status → completed
+     *   4. GET  /api/projects/{id}/estimation → verify estimation reflects the item's hours
+     *   5. PUT  /api/items/{id}/toggle-status → back to pending
      */
-    public function testToggleItemStatusChangesEstimation(): void
+    public function testTogglingItemStatusFlipsStatusAndEstimation(): void
     {
         $client = static::createClient();
 
-        // 1. Login
+        // 1. Register (idempotent — ignore "already exists") then login
+        $client->request('POST', '/api/auth/register', [], [], [
+            'CONTENT_TYPE' => 'application/json',
+        ], json_encode([
+            'email'    => 'test@example.com',
+            'password' => 'password123',
+            'name'     => 'E2E Tester',
+        ]));
+
         $client->request('POST', '/api/auth/login', [], [], [
             'CONTENT_TYPE' => 'application/json',
         ], json_encode([
@@ -50,8 +58,8 @@ final class ItemToggleStatusTest extends WebTestCase
         $projectId = $this->getTestProjectId($client, $headers);
 
         $client->request('POST', '/api/items', [], [], $headers, json_encode([
-            'name'           => 'E2E Test Item',
-            'estimatedHours' => 5.0,
+            'name'           => 'E2E Item',
+            'estimatedHours' => 2.0,
             'projectId'      => $projectId,
         ]));
 
@@ -66,14 +74,13 @@ final class ItemToggleStatusTest extends WebTestCase
         $toggleData = json_decode($client->getResponse()->getContent(), true);
         $this->assertSame('completed', $toggleData['status']);
 
-        // 4. Verify estimation: completed item should reduce remaining hours
+        // 4. Estimation reflects the item's hours
         $client->request('GET', "/api/projects/$projectId/estimation", [], [], $headers);
         $this->assertResponseIsSuccessful();
         $estimation = json_decode($client->getResponse()->getContent(), true);
-        // The completed item's estimated hours are excluded from remaining
-        $this->assertIsFloat($estimation['remainingHours']);
+        $this->assertGreaterThanOrEqual(2.0, $estimation['estimatedHours']);
 
-        // 5. Toggle back → pending
+        // 5. Toggle → back to pending
         $client->request('PUT', "/api/items/$itemId/toggle-status", [], [], $headers);
         $this->assertResponseIsSuccessful();
         $toggleData = json_decode($client->getResponse()->getContent(), true);

@@ -37,9 +37,13 @@ final class ProjectController extends ApiController
     }
 
     #[Route('/{id}', name: 'api_projects_detail', methods: ['GET'])]
-    public function detail(string $id, GetProjectWithItemsUseCase $useCase): JsonResponse
+    public function detail(string $id, Request $request, GetProjectWithItemsUseCase $useCase): JsonResponse
     {
-        $response = $useCase->execute(new GetProjectWithItemsRequest($id));
+        $response = $useCase->execute(new GetProjectWithItemsRequest(
+            projectId: $id,
+            sortBy:    $request->query->get('sortBy'),
+            direction: $request->query->get('direction'),
+        ));
 
         return new JsonResponse([
             'project' => $response->project()->toArray(),

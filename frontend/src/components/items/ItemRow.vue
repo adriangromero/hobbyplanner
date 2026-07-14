@@ -1,27 +1,34 @@
 <template>
   <tr
-    class="border-b hover:bg-gray-50"
-    :class="{ 'opacity-50 bg-green-50': isCompleted }"
+    class="border-b border-gray-100 last:border-b-0 hover:bg-gray-50/80 transition-colors"
+    :class="{ 'opacity-50 bg-green-50/50': isCompleted }"
   >
 
+    <!-- Selección -->
+    <td class="p-3 w-8 pl-4">
+      <input
+        type="checkbox"
+        :checked="selected"
+        @change="$emit('toggle-select')"
+        class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-400 cursor-pointer"
+      />
+    </td>
+
     <!-- Estado -->
-    <td class="p-3">
-      <div class="flex flex-col items-center gap-1">
-        <button
-          @click="handleToggleStatus"
-          :disabled="loading"
-          class="w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 disabled:opacity-50"
-          :class="isCompleted
-            ? 'bg-green-500 border-green-500 text-white scale-110'
-            : 'border-gray-300 hover:border-green-400 hover:scale-110'"
-          :title="isCompleted ? 'Marcar como pendiente' : 'Marcar como completado'"
-        >
-          <span v-if="isCompleted" class="text-xs">&#10003;</span>
-        </button>
-        <span v-if="isCompleted" class="text-[10px] font-medium text-green-600 leading-none">
-          Completado
-        </span>
-      </div>
+    <td class="p-3 w-24">
+      <button
+        @click="handleToggleStatus"
+        :disabled="loading"
+        class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 disabled:opacity-50 mx-auto"
+        :class="isCompleted
+          ? 'bg-green-500 border-green-500 text-white'
+          : 'border-gray-300 hover:border-green-400 hover:scale-110'"
+        :title="isCompleted ? 'Marcar como pendiente' : 'Marcar como completado'"
+      >
+        <svg v-if="isCompleted" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5">
+          <path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.4 7.4a1 1 0 01-1.4 0L3.3 9.5a1 1 0 111.4-1.4l3.6 3.6 6.7-6.7a1 1 0 011.4 0z" clip-rule="evenodd" />
+        </svg>
+      </button>
     </td>
 
     <!-- Nombre -->
@@ -33,32 +40,38 @@
           class="border rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
       </div>
-      <span v-else :class="{ 'line-through text-gray-400': isCompleted }">{{ item.name }}</span>
+      <span v-else class="font-medium text-gray-800" :class="{ 'line-through text-gray-400 font-normal': isCompleted }">
+        {{ item.name }}
+      </span>
     </td>
 
     <!-- Horas estimadas -->
     <td class="p-3">
-      <div v-if="editingItem">
+      <div v-if="editingItem" class="flex items-center gap-1.5">
         <input
           v-model="editForm.estimatedHours"
           type="number"
           min="0.5"
           step="0.5"
-          class="border rounded px-2 py-1 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          class="border rounded px-2 py-1 text-sm w-16 focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
       </div>
-      <span v-else>{{ item.estimatedHours }}h</span>
+      <span v-else class="text-gray-600">
+        {{ item.estimatedHours }}h
+      </span>
     </td>
 
     <!-- Sesiones — con botón para abrir modal -->
     <td class="p-3">
       <button
         @click="showSessionsModal = true"
-        class="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600 transition-colors"
+        class="flex items-center gap-1.5 text-sm text-gray-600 hover:text-blue-600 transition-colors"
         title="Ver sesiones"
       >
+        <svg viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-gray-400">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.3.7l2.5 2.5a1 1 0 001.4-1.4L11 9.6V6z" clip-rule="evenodd" />
+        </svg>
         <span>{{ item.totalSessions }}</span>
-        <span class="text-xs">&#128450;</span>
       </button>
     </td>
 
@@ -68,11 +81,11 @@
     </td>
 
     <!-- Acciones -->
-    <td class="p-3">
-      <div class="flex items-center gap-2">
+    <td class="p-3 pr-4">
+      <div class="flex items-center justify-end gap-1.5">
 
         <!-- Timer corriendo -->
-        <span v-if="isActive" class="font-mono text-xs text-red-600 font-bold">
+        <span v-if="isActive" class="font-mono text-xs text-red-600 font-bold bg-red-50 px-2 py-1 rounded-full">
           {{ timer.elapsedFormatted }}
         </span>
 
@@ -100,10 +113,10 @@
               key="stop-btn"
               @click="confirmingStop = true"
               :disabled="loading"
-              class="text-red-600 hover:text-red-700 hover:scale-125 transition-all duration-150 disabled:opacity-50"
+              class="w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-sm transition disabled:opacity-50"
               title="Parar sesión"
             >
-              &#9209;
+              <svg viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5"><rect x="5" y="5" width="10" height="10" rx="1.5" /></svg>
             </button>
           </Transition>
         </template>
@@ -113,11 +126,13 @@
           v-else-if="!editingItem && !deletingItem && !isCompleted"
           @click="handleStart"
           :disabled="loading || anotherSessionActive"
-          :class="anotherSessionActive ? 'text-gray-300 cursor-not-allowed' : 'text-green-600 hover:text-green-700 hover:scale-125'"
-          class="transition-all duration-150 disabled:opacity-50"
+          :class="anotherSessionActive
+            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            : 'bg-green-600 hover:bg-green-700 text-white shadow-sm hover:scale-105'"
+          class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-150 disabled:opacity-50"
           :title="anotherSessionActive ? 'Sesión activa en ' + timer.activeItemName : 'Iniciar sesión'"
         >
-          &#9654;
+          <svg viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5 translate-x-[1px]"><path d="M6 4.5v11l9-5.5-9-5.5z" /></svg>
         </button>
 
         <!-- Separador -->
@@ -162,17 +177,21 @@
         <template v-else>
           <button
             @click="startEditItem"
-            class="text-blue-400 hover:text-blue-600 transition-colors"
+            class="w-8 h-8 rounded-lg text-blue-400 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-colors"
             title="Editar item"
           >
-            &#9998;&#65039;
+            <svg viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+              <path d="M13.6 2.4a1.5 1.5 0 012.1 2.1l-1 1-2.1-2.1 1-1zM4 12.5l7.6-7.6 2.1 2.1L6.1 14.6H4v-2.1z" />
+            </svg>
           </button>
           <button
             @click="deletingItem = true"
-            class="text-red-400 hover:text-red-600 transition-colors"
+            class="w-8 h-8 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors"
             title="Eliminar item"
           >
-            &#128465;&#65039;
+            <svg viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+              <path fill-rule="evenodd" d="M8 2a1 1 0 00-1 1v1H4a1 1 0 000 2h12a1 1 0 100-2h-3V3a1 1 0 00-1-1H8zM5 7l.6 9.1a2 2 0 002 1.9h4.8a2 2 0 002-1.9L15 7H5z" clip-rule="evenodd" />
+            </svg>
           </button>
         </template>
 
@@ -197,7 +216,14 @@ import BlockingOverlay from '@/components/ui/BlockingOverlay.vue'
 import SessionsModal from './SessionsModal.vue'
 import type { Item } from '@/types/models'
 
-const props = defineProps<{ item: Item }>()
+const props = defineProps<{
+  item:     Item
+  selected: boolean
+}>()
+
+defineEmits<{
+  'toggle-select': []
+}>()
 
 const timer        = useTimerStore()
 const projectStore = useProjectStore()
@@ -227,20 +253,21 @@ const anotherSessionActive = computed(() =>
 const isCompleted = computed(() => props.item.status === 'completed')
 
 
-// ── Status ──────────────────────────────────────────────
+// ── Estado ──────────────────────────────────────────────
 
 async function handleToggleStatus() {
   await run('Actualizando estado...', async () => {
     try {
       const data = await itemApi.toggleStatus(props.item.id)
-      projectStore.toggleItemStatus(props.item.id, data.status)
+      projectStore.updateItemStatus(props.item.id, data.status)
+
       toast.success(
         data.status === 'completed'
           ? `"${props.item.name}" completado`
           : `"${props.item.name}" reactivado`
       )
     } catch {
-      toast.error('Error al cambiar el estado')
+      toast.error('Error al actualizar el estado')
     }
   })
 }

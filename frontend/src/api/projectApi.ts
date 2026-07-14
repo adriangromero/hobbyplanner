@@ -12,8 +12,8 @@ export const projectApi = {
     return data.projects
   },
 
-  async detail(id: string): Promise<ProjectDetailResponse> {
-    const { data } = await api.get(`/projects/${id}`)
+  async detail(id: string, sortBy?: string, direction?: 'asc' | 'desc'): Promise<ProjectDetailResponse> {
+    const { data } = await api.get(`/projects/${id}`, { params: { sortBy, direction } })
     return data
   },
 

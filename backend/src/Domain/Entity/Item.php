@@ -66,6 +66,18 @@ final class Item implements OwnableResource
         $this->updateEstimatedHours($estimatedHours);
     }
 
+    public function markAsCompleted(): void
+    {
+        $this->status    = ItemStatus::COMPLETED;
+        $this->updatedAt = new DateTimeImmutable();
+    }
+
+    public function markAsPending(): void
+    {
+        $this->status    = ItemStatus::PENDING;
+        $this->updatedAt = new DateTimeImmutable();
+    }
+
     public function rename(string $name): void
     {
         if (trim($name) === '') {
@@ -84,23 +96,5 @@ final class Item implements OwnableResource
 
         $this->estimatedHours = $hours;
         $this->updatedAt      = new DateTimeImmutable();
-    }
-
-    public function markAsCompleted(): void
-    {
-        $this->status    = ItemStatus::COMPLETED;
-        $this->updatedAt = new DateTimeImmutable();
-    }
-
-    public function markAsInProgress(): void
-    {
-        $this->status    = ItemStatus::IN_PROGRESS;
-        $this->updatedAt = new DateTimeImmutable();
-    }
-
-    public function markAsPending(): void
-    {
-        $this->status    = ItemStatus::PENDING;
-        $this->updatedAt = new DateTimeImmutable();
     }
 }

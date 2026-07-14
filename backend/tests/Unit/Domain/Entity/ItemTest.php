@@ -19,6 +19,7 @@ final class ItemTest extends TestCase
 
         $this->assertSame('Test Item', $item->name());
         $this->assertSame(5.0, $item->estimatedHours());
+        $this->assertSame(ItemStatus::PENDING, $item->status());
     }
 
     public function testCreateEmptyNameThrows(): void
@@ -100,13 +101,14 @@ final class ItemTest extends TestCase
         $this->assertTrue($item->status()->isCompleted());
     }
 
-    public function testMarkAsPendingAfterCompleted(): void
+    public function testMarkAsPending(): void
     {
         $item = $this->createItem();
         $item->markAsCompleted();
         $item->markAsPending();
 
         $this->assertSame(ItemStatus::PENDING, $item->status());
+        $this->assertFalse($item->status()->isCompleted());
     }
 
     public function testTimestampsAreSet(): void

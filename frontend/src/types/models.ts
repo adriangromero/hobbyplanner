@@ -14,7 +14,7 @@ export type Item = {
   id:             string
   name:           string
   estimatedHours: number
-  status:         'pending' | 'in_progress' | 'completed'
+  status:         'pending' | 'completed'
   createdAt:      string
   totalSessions:  number
   totalHours:     number

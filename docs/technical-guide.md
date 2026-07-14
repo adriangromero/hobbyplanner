@@ -171,7 +171,7 @@ Vue: reactivamente muestra el nuevo item en la tabla
 |---------------|--------------------------------------------------------|
 | `User`        | Usuario con email, password, roles. 100% dominio puro — sin dependencias de Symfony |
 | `Project`     | Proyecto de hobby con nombre, descripcion y estado (active/completed) |
-| `Item`        | Item dentro de un proyecto con horas estimadas y estado (pending/in_progress/completed) |
+| `Item`        | Item dentro de un proyecto con horas estimadas y estado (pending/completed) |
 | `WorkSession` | Sesion de trabajo con inicio/fin, calcula duracion     |
 
 Cada entidad:
@@ -206,9 +206,8 @@ Los estados de item y proyecto son **PHP 8.2 backed enums**, no tablas en base d
 ```php
 enum ItemStatus: string
 {
-    case PENDING     = 'pending';
-    case IN_PROGRESS = 'in_progress';
-    case COMPLETED   = 'completed';
+    case PENDING   = 'pending';
+    case COMPLETED = 'completed';
 
     public function isCompleted(): bool
     {

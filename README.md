@@ -50,7 +50,7 @@ backend/src/
 - **IDs tipados**: `ProjectId`, `ItemId`, `UserId`, `WorkSessionId` — heredan de `AbstractId` (UUID v4 con `create()`, `fromString()`, `equals()`)
 - **Email**: constructor privado, factory `fromString()`, validado con `filter_var`, inmutable
 - **ProjectEstimation**: constructor privado, factory `create()` con validacion de rangos, inmutable
-- **Enums como Value Objects**: `ItemStatus` (pending, in_progress, completed) y `ProjectStatus` (active, completed) — PHP 8.2 backed enums, almacenados como strings en BD, sin tabla auxiliar
+- **Enums como Value Objects**: `ItemStatus` (pending, completed) y `ProjectStatus` (active, completed) — PHP 8.2 backed enums, almacenados como strings en BD, sin tabla auxiliar
 
 ### Cascade de borrado en dominio (transaccional, no en BD)
 
@@ -100,7 +100,7 @@ erDiagram
         uuid user_id FK
         string name
         float estimated_hours
-        string status "pending | in_progress | completed"
+        string status "pending | completed"
         datetime created_at
         datetime updated_at
     }
@@ -144,7 +144,7 @@ erDiagram
 |--------|-----------------------------------|--------------------------------|
 | GET    | `/api/projects`                   | Listar proyectos del usuario   |
 | POST   | `/api/projects`                   | Crear proyecto                 |
-| GET    | `/api/projects/{id}`              | Detalle con items              |
+| GET    | `/api/projects/{id}`              | Detalle con items (admite `?sortBy=name\|estimatedHours\|status&direction=asc\|desc`, vía `ItemSortField`/`SortDirection` + Doctrine QueryBuilder) |
 | PUT    | `/api/projects/{id}`              | Actualizar proyecto            |
 | DELETE | `/api/projects/{id}`              | Eliminar (cascade domain)      |
 | PUT    | `/api/projects/{id}/toggle-status`| Alternar active <-> completed  |
@@ -222,6 +222,43 @@ cd frontend && npm install && cd ..
 | Frontend     | http://localhost:5173    |
 | API (nginx)  | http://localhost/api     |
 | phpMyAdmin   | http://localhost:8080    |
+
+### Rendimiento en Windows — usa WSL2, no `C:\`
+
+Si desarrollas en Windows con Docker Desktop y clonaste el repo en una ruta de tipo `C:\...`, Symfony en modo dev va a ir **extremadamente lento** (arranques de 10+ segundos, peticiones de varios segundos). No es un problema de este proyecto ni de PHP: Docker Desktop en Windows ejecuta los contenedores Linux dentro de una VM (WSL2), y cuando montas una carpeta de `C:\` como bind mount, **cada acceso a fichero cruza la frontera Windows↔Linux** via el protocolo 9P. Symfony en dev abre miles de ficheros pequeños por request (autoload, contenedor DI, mappings de Doctrine...), y esa frontera cobra unos milisegundos por cada uno.
+
+Numeros reales medidos en este proyecto (`php bin/console about`, sin logica de negocio):
+
+| Ubicacion del codigo                          | Arranque Symfony | Peticion HTTP real | Suite de tests completa |
+|------------------------------------------------|------------------|---------------------|--------------------------|
+| `C:\workspace\...` (bind mount Windows)        | 12–14 s          | 3.8–11 s (inestable)| ~9.4 s                   |
+| Filesystem nativo de WSL2 (`~/...` en Ubuntu)  | 0.07–0.08 s      | ~0.5 s (estable)    | ~70 ms                   |
+
+**Solucion — trabaja desde dentro de WSL2, no desde `C:\`:**
+
+```bash
+# 1. Copia el repo al filesystem nativo de tu distro WSL2 (una sola vez)
+#    Desde una terminal de Ubuntu/WSL:
+rsync -a --exclude 'backend/vendor/' --exclude 'backend/var/' \
+         --exclude 'frontend/node_modules/' --exclude 'frontend/dist/' \
+         /mnt/c/ruta/a/hobbyplanner_from_git/ ~/hobbyplanner_from_git/
+
+# 2. Docker Desktop -> Settings -> Resources -> WSL Integration
+#    Activa el toggle de tu distro (p.ej. "Ubuntu") -> Apply & Restart
+#    (si Docker Desktop se queda raro tras el restart, cierra TODOS los
+#    procesos "Docker Desktop"/"com.docker.*" y `wsl --shutdown` antes
+#    de relanzarlo una sola vez — evita instancias duplicadas)
+
+# 3. Trabaja siempre desde dentro de WSL2 a partir de aqui
+cd ~/hobbyplanner_from_git
+code .                          # abre VS Code en modo "WSL: Ubuntu"
+docker compose up -d --build
+docker compose exec php composer install
+```
+
+El nombre del proyecto de Docker Compose se calcula del nombre de carpeta — si la mantienes igual (`hobbyplanner_from_git`), reutiliza automaticamente los volumenes (`_db_data`, `_node_modules`) que ya tuvieras en `C:\`, sin perder datos.
+
+Aparte de esto, `docker/php/Dockerfile` ya trae un ajuste de opcache (`revalidate_freq`, `realpath_cache`) que ayuda un poco incluso sobre bind mount — pero es un parche menor comparado con quitar la frontera Windows↔Linux del todo.
 
 ### Tests
 
@@ -302,9 +339,11 @@ frontend/src/
 
 ### Items y estimacion
 - CRUD de items con horas estimadas
-- Estado de item: pendiente / en progreso / completado (toggle con confirmacion)
+- Estado de item: pendiente / completado (toggle con confirmacion)
 - Confirmacion inline antes de completar ("¿Completar? Si / No")
 - Items completados: opacidad reducida, texto tachado, timer deshabilitado
+- **Ordenacion por columna** (Nombre, Horas estimadas, Estado): click en la cabecera ordena asc/desc contra la BD (Doctrine `QueryBuilder`, whitelist via enum `ItemSortField` — no se puede inyectar una columna arbitraria)
+- **Seleccion multiple y borrado masivo**: checkbox por fila + "seleccionar todo" en cabecera (estado indeterminado si la seleccion es parcial), barra de accion contextual con confirmacion antes de eliminar
 
 ### Sistema de estimacion (ProjectEstimator)
 - **Velocidad**: horas trabajadas / dias activos
@@ -320,7 +359,7 @@ frontend/src/
 
 ### Inventario
 - Vista global de todos los items del usuario en todos los proyectos
-- Filtros: Todos, Pendientes, En progreso, Completados
+- Filtros: Todos, Pendientes, Completados
 - Toggle de estado con confirmacion
 - Link a cada proyecto
 
