@@ -14,6 +14,7 @@ use App\Domain\Repository\PaintingPlanRepositoryInterface;
 use App\Domain\Repository\PaintingSessionRepositoryInterface;
 use App\Domain\Exception\ProjectNotFoundException;
 use App\Domain\Service\ProjectEstimator;
+use App\Domain\ValueObject\ProjectType;
 
 final class GetProjectEstimationUseCase
 {
@@ -40,8 +41,12 @@ final class GetProjectEstimationUseCase
 
         $this->ownershipGuard->ensureOwnership($project);
 
-        $items    = $this->itemRepository->findByProject($projectId);
-        $sessions = $this->workSessionRepository->findByProject($projectId);
+        // Army estimates are based exclusively on unit painting plans. Legacy
+        // generic Items remain available for general projects, but must not
+        // leak back into the army inventory experience.
+        $isArmy = $project->type() === ProjectType::ARMY;
+        $items = $isArmy ? [] : $this->itemRepository->findByProject($projectId);
+        $sessions = $isArmy ? [] : $this->workSessionRepository->findByProject($projectId);
         $units = $this->unitRepository->findByProject($projectId);
         $plans = $units === [] ? [] : $this->paintingPlanRepository->findByUnits(
             array_map(static fn($unit) => $unit->id(), $units),

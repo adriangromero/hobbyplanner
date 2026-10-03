@@ -30,6 +30,8 @@
       </div>
     </dl>
 
+    <ArmyEstimationCard class="mb-5" />
+
     <form v-if="showUnitForm" class="bg-white border rounded-xl p-4 mb-5" @submit.prevent="createUnit">
       <label for="unit-name" class="block text-sm font-medium text-gray-700 mb-1">Nombre de la unidad o personaje</label>
       <div class="flex flex-wrap gap-2">
@@ -58,6 +60,7 @@
 import { computed, ref } from 'vue'
 import { useProjectStore } from '@/stores/projectStore'
 import ArmyUnitCard from '@/components/armies/ArmyUnitCard.vue'
+import ArmyEstimationCard from '@/components/armies/ArmyEstimationCard.vue'
 
 const props = defineProps<{ projectId: string }>()
 const store = useProjectStore()

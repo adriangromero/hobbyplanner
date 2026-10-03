@@ -11,6 +11,11 @@
         <span class="block text-sm text-gray-600 mt-0.5">
           {{ componentCountLabel }} · {{ paintedTotal }}/{{ totalCount }} pintados
         </span>
+        <span v-if="unit.paintingPlan" class="block text-xs text-gray-600 mt-1">
+          Pintado: {{ formatHours(unit.paintingPlan.workedHours) }} de {{ formatHours(unit.paintingPlan.estimatedHours) }} ·
+          {{ formatHours(unit.paintingPlan.remainingHours) }} restantes
+        </span>
+        <span v-else class="block text-xs text-gray-500 mt-1">Sin plan de pintado</span>
       </span>
       <span class="flex items-center gap-3 shrink-0">
         <span class="hidden sm:inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
@@ -123,6 +128,7 @@
 import { computed, ref } from 'vue'
 import { useProjectStore } from '@/stores/projectStore'
 import PaintingPlanPanel from '@/components/armies/PaintingPlanPanel.vue'
+import { formatHours } from '@/utils/format'
 import type { ProjectUnit, UnitComponent } from '@/types/models'
 
 const props = defineProps<{ unit: ProjectUnit; initiallyExpanded?: boolean }>()
