@@ -33,7 +33,7 @@
         </p>
         <p class="text-xs text-gray-600 mt-1">
           {{ unit.paintingPlan.estimation.velocityPerActiveDay.toFixed(1) }} h por día de pintado ·
-          {{ unit.paintingPlan.estimation.frequencyDaysPerWeek.toFixed(1) }} días por semana
+          {{ unit.paintingPlan.estimation.frequencyDaysPerWeek.toFixed(1) }} días por semana · media desde la primera sesión
         </p>
       </div>
       <p v-else class="mt-3 text-xs text-gray-600">La fecha estimada de esta unidad aparecerá tras registrar sesiones de pintado.</p>

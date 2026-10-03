@@ -37,16 +37,23 @@ final class ProjectEstimator
         $remainingHours        = max(0.0, $pendingEstimatedHours - $pendingWorkedHours)
             + $this->remainingPaintingHours($paintingPlans, $paintingSessions);
 
-        $activeDays       = $this->countActiveDays($closedSessions, $paintingSessions);
-        $today            = new DateTimeImmutable();
-        $daysSinceStart   = max(1, $projectStart->diff($today)->days);
-        $weeksSinceStart  = max(1.0, $daysSinceStart / 7);
+        $activeDays = $this->countActiveDays($closedSessions, $paintingSessions);
+        $today      = new DateTimeImmutable();
+
+        // Use actual work history as the frequency window. Project/plan creation
+        // can predate the first painting session by months and distort the pace.
+        $firstActiveDay = $this->firstActiveDay($closedSessions, $paintingSessions);
+        $weeksSinceActivity = $firstActiveDay === null
+            ? 0.0
+            : max(1.0, ($firstActiveDay->diff($today)->days + 1) / 7);
 
         $velocityPerActiveDay = $activeDays > 0
             ? $totalWorkedHours / $activeDays
             : 0.0;
 
-        $frequencyDaysPerWeek = $activeDays / $weeksSinceStart;
+        $frequencyDaysPerWeek = $weeksSinceActivity > 0
+            ? $activeDays / $weeksSinceActivity
+            : 0.0;
 
         [$activeDaysRemaining, $daysRemaining, $completionDate] = $this->projectCompletion(
             $remainingHours,
@@ -164,6 +171,30 @@ final class ProjectEstimator
         }
 
         return count($days);
+    }
+
+    /**
+     * @param WorkSession[]     $closedSessions
+     * @param PaintingSession[] $paintingSessions
+     */
+    private function firstActiveDay(array $closedSessions, array $paintingSessions): ?DateTimeImmutable
+    {
+        $firstDay = null;
+
+        foreach ($closedSessions as $session) {
+            $day = $session->workedDay();
+            if ($firstDay === null || $day < $firstDay) {
+                $firstDay = $day;
+            }
+        }
+        foreach ($paintingSessions as $session) {
+            $day = $session->workedAt()->format('Y-m-d');
+            if ($firstDay === null || $day < $firstDay) {
+                $firstDay = $day;
+            }
+        }
+
+        return $firstDay === null ? null : new DateTimeImmutable($firstDay);
     }
 
     /**

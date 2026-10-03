@@ -43,10 +43,11 @@
       </div>
 
       <div class="bg-gray-50 rounded-lg p-3">
-        <p class="text-xs text-gray-500">Frecuencia</p>
+        <p class="text-xs text-gray-500">Frecuencia de pintado</p>
         <p class="text-lg font-bold text-gray-800">
           {{ est.frequencyDaysPerWeek.toFixed(1) }}<span class="text-sm font-normal text-gray-500">días/sem</span>
         </p>
+        <p class="text-xs text-gray-500">Media desde la primera sesión</p>
       </div>
 
       <div class="bg-gray-50 rounded-lg p-3">

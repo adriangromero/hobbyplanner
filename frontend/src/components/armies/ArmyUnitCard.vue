@@ -42,7 +42,7 @@
         <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
           <div>
             <h2 :id="`components-heading-${unit.id}`" class="font-semibold text-gray-900">Composición</h2>
-            <p class="text-sm text-gray-600">Cada casilla representa una miniatura del recuento.</p>
+            <p class="text-sm text-gray-600">Despliegue en filas de cinco. Las casillas guardan el recuento pintado, no la identidad de cada miniatura.</p>
           </div>
           <button v-if="!showAddForm" type="button" class="text-sm font-medium text-blue-700 hover:underline" @click="showAddForm = true">Añadir componente</button>
         </div>
@@ -94,17 +94,36 @@
                 </div>
               </div>
 
-              <div v-if="component.quantityTotal <= CHECKBOX_LIMIT" class="mt-3 flex flex-wrap gap-1" role="group" :aria-label="`Miniaturas pintadas de ${component.label}`">
-                <label v-for="index in component.quantityTotal" :key="index" class="inline-flex w-10 h-10 items-center justify-center cursor-pointer rounded focus-within:ring-2 focus-within:ring-blue-500" :title="`Miniatura ${index} de ${component.quantityTotal}`">
-                  <input
-                    type="checkbox"
-                    class="w-6 h-6 rounded border-gray-400 text-blue-700 focus:ring-blue-500"
-                    :checked="isSlotPainted(component, index)"
-                    :disabled="savingComponentId === component.id"
-                    :aria-label="`Miniatura ${index} de ${component.quantityTotal} de ${component.label}, ${isSlotPainted(component, index) ? 'pintada' : 'sin pintar'}`"
-                    @change="toggleMiniature(component, index, $event)"
-                  />
-                </label>
+              <div v-if="component.quantityTotal <= CHECKBOX_LIMIT" class="mt-3 rounded-xl border border-emerald-900/15 bg-emerald-50/70 p-3 shadow-inner sm:p-4" role="group" :aria-label="`Despliegue de ${component.label}, ${component.quantityTotal} casillas`">
+                <div class="space-y-2">
+                  <div v-for="(row, rowIndex) in formationRows(component.quantityTotal)" :key="rowIndex" class="space-y-1">
+                    <span class="block text-[0.65rem] font-semibold uppercase tracking-wide text-emerald-950/60">Fila {{ String(rowIndex + 1).padStart(2, '0') }}</span>
+                    <div class="grid w-fit grid-cols-5 gap-1 sm:gap-2">
+                      <label
+                        v-for="index in row"
+                        :key="index"
+                        class="group relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 shadow-sm transition hover:-translate-y-0.5 hover:shadow focus-within:ring-2 focus-within:ring-emerald-700 focus-within:ring-offset-2"
+                        :class="isSlotPainted(component, index) ? 'border-emerald-800 bg-emerald-700 text-white' : 'border-stone-400 bg-stone-100 text-stone-600 hover:border-emerald-700'"
+                        :title="`Casilla ${index}, fila ${rowIndex + 1}: ${isSlotPainted(component, index) ? 'pintada' : 'sin pintar'}`"
+                      >
+                        <input
+                          type="checkbox"
+                          class="sr-only"
+                          :checked="isSlotPainted(component, index)"
+                          :disabled="savingComponentId === component.id"
+                          :aria-label="`Casilla ${index}, fila ${rowIndex + 1} de ${component.label}, ${isSlotPainted(component, index) ? 'pintada' : 'sin pintar'}`"
+                          @change="toggleMiniature(component, index, $event)"
+                        />
+                        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                          <circle cx="12" cy="5.5" r="2.5" />
+                          <path d="M8.2 9h7.6l1.4 9H6.8l1.4-9Z" />
+                          <path d="M12 10v10m-3.5-5h7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.7" />
+                          <path d="m18.8 3.5-6 8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5" />
+                        </svg>
+                      </label>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div v-else class="mt-3 flex flex-wrap items-center gap-2">
                 <span class="text-sm text-gray-700">Pintadas:</span>
@@ -231,6 +250,14 @@ function getPaintedSlots(component: UnitComponent): number[] {
   const cached = paintedSlots.value[component.id]
   if (cached && cached.length === component.quantityPainted && cached.every((slot) => slot <= component.quantityTotal)) return cached
   return Array.from({ length: component.quantityPainted }, (_, index) => index + 1)
+}
+
+function formationRows(quantity: number): number[][] {
+  return Array.from({ length: Math.ceil(quantity / 5) }, (_, rowIndex) => {
+    const first = rowIndex * 5 + 1
+    const last = Math.min(first + 4, quantity)
+    return Array.from({ length: last - first + 1 }, (_, slotIndex) => first + slotIndex)
+  })
 }
 
 function isSlotPainted(component: UnitComponent, index: number): boolean {
