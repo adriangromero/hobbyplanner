@@ -8,17 +8,18 @@ use App\Application\DTO\PaintingPlanDTO;
 use App\Application\DTO\UnitDTO;
 use App\Application\Security\OwnershipGuard;
 use App\Domain\Entity\PaintingSession;
-use App\Domain\Exception\ArmyNotFoundException;
-use App\Domain\Repository\ArmyRepositoryInterface;
+use App\Domain\Exception\ProjectNotFoundException;
+use App\Domain\Repository\ProjectRepositoryInterface;
 use App\Domain\Repository\PaintingPlanRepositoryInterface;
 use App\Domain\Repository\PaintingSessionRepositoryInterface;
 use App\Domain\Repository\UnitComponentRepositoryInterface;
 use App\Domain\Repository\UnitRepositoryInterface;
+use App\Domain\ValueObject\ProjectType;
 
 final class ListArmyUnitsUseCase
 {
     public function __construct(
-        private readonly ArmyRepositoryInterface $armies,
+        private readonly ProjectRepositoryInterface $projects,
         private readonly UnitRepositoryInterface $units,
         private readonly UnitComponentRepositoryInterface $components,
         private readonly PaintingPlanRepositoryInterface $plans,
@@ -28,9 +29,12 @@ final class ListArmyUnitsUseCase
 
     public function execute(ListArmyUnitsRequest $request): array
     {
-        $army = $this->armies->findById($request->armyId()) ?? throw new ArmyNotFoundException($request->armyId()->value());
-        $this->ownership->ensureOwnership($army);
-        $units = $this->units->findByArmy($army->id());
+        $project = $this->projects->findById($request->projectId()) ?? throw new ProjectNotFoundException($request->projectId()->value());
+        $this->ownership->ensureOwnership($project);
+        if ($project->type() !== ProjectType::ARMY) {
+            return [];
+        }
+        $units = $this->units->findByProject($project->id());
         $plans = $this->plans->findByUnits(array_map(static fn($unit) => $unit->id(), $units));
         $sessionsByPlan = $this->sessions->findGroupedByPlans(array_map(static fn($plan) => $plan->id(), $plans));
         $planByUnit = [];

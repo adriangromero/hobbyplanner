@@ -121,13 +121,13 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useArmyStore } from '@/stores/armyStore'
+import { useProjectStore } from '@/stores/projectStore'
 import PaintingPlanPanel from '@/components/armies/PaintingPlanPanel.vue'
-import type { ArmyUnit, UnitComponent } from '@/types/models'
+import type { ProjectUnit, UnitComponent } from '@/types/models'
 
-const props = defineProps<{ unit: ArmyUnit; initiallyExpanded?: boolean }>()
+const props = defineProps<{ unit: ProjectUnit; initiallyExpanded?: boolean }>()
 const CHECKBOX_LIMIT = 40
-const store = useArmyStore()
+const store = useProjectStore()
 const expanded = ref(props.initiallyExpanded ?? false)
 const showAddForm = ref(false)
 const newLabel = ref('')

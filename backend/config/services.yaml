@@ -38,9 +38,6 @@ services:
     App\Domain\Repository\ProjectRepositoryInterface:
         class: App\Infrastructure\Persistence\Doctrine\Repository\DoctrineProjectRepository
 
-    App\Domain\Repository\ArmyRepositoryInterface:
-        class: App\Infrastructure\Persistence\Doctrine\Repository\DoctrineArmyRepository
-
     App\Domain\Repository\UnitRepositoryInterface:
         class: App\Infrastructure\Persistence\Doctrine\Repository\DoctrineUnitRepository
 

@@ -11,7 +11,7 @@ final class UnitDTO
 {
     private function __construct(
         private string $id,
-        private string $armyId,
+        private string $projectId,
         private string $name,
         private array $components,
         private ?array $paintingPlan,
@@ -21,7 +21,7 @@ final class UnitDTO
     {
         return new self(
             $unit->id()->value(),
-            $unit->armyId()->value(),
+            $unit->projectId()->value(),
             $unit->name(),
             array_map(static fn(UnitComponent $component): array => UnitComponentDTO::fromEntity($component)->toArray(), $components),
             $paintingPlan,
@@ -30,6 +30,6 @@ final class UnitDTO
 
     public function toArray(): array
     {
-        return ['id' => $this->id, 'armyId' => $this->armyId, 'name' => $this->name, 'components' => $this->components, 'paintingPlan' => $this->paintingPlan];
+        return ['id' => $this->id, 'projectId' => $this->projectId, 'name' => $this->name, 'components' => $this->components, 'paintingPlan' => $this->paintingPlan];
     }
 }

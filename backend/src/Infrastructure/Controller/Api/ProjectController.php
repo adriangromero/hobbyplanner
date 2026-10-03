@@ -68,6 +68,7 @@ final class ProjectController extends ApiController
             userId:      $this->currentUserId()->value(),
             name:        $data['name'],
             description: $data['description'],
+            type:        (string) ($data['type'] ?? 'general'),
         ));
 
         return new JsonResponse($response->project()->toArray(), Response::HTTP_CREATED);

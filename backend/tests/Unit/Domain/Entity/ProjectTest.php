@@ -7,6 +7,7 @@ namespace App\Tests\Unit\Domain\Entity;
 use App\Domain\Entity\Project;
 use App\Domain\Exception\ValidationException;
 use App\Domain\ValueObject\ProjectStatus;
+use App\Domain\ValueObject\ProjectType;
 use App\Domain\ValueObject\UserId;
 use PHPUnit\Framework\TestCase;
 
@@ -23,6 +24,19 @@ final class ProjectTest extends TestCase
         $this->assertSame('My Project', $project->name());
         $this->assertSame('A description', $project->description());
         $this->assertSame(ProjectStatus::ACTIVE, $project->status());
+        $this->assertSame(ProjectType::GENERAL, $project->type());
+    }
+
+    public function testCanCreateArmyProject(): void
+    {
+        $project = Project::create(
+            UserId::create(),
+            'Talabheim',
+            '',
+            ProjectType::ARMY,
+        );
+
+        $this->assertSame(ProjectType::ARMY, $project->type());
     }
 
     public function testCreateEmptyNameThrows(): void

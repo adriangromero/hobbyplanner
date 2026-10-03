@@ -26,6 +26,7 @@ export type Project = {
   name:         string
   description?: string
   status:       'active' | 'completed'
+  type:         'general' | 'army'
   createdAt:    string
 }
 
@@ -47,12 +48,6 @@ export type InventoryItem = Item & {
   projectName: string
 }
 
-export type Army = {
-  id: string
-  name: string
-  createdAt: string
-}
-
 export type PaintingPlan = {
   id: string
   unitId: string
@@ -70,9 +65,9 @@ export type UnitComponent = {
   remainingQuantity: number
 }
 
-export type ArmyUnit = {
+export type ProjectUnit = {
   id: string
-  armyId: string
+  projectId: string
   name: string
   components: UnitComponent[]
   paintingPlan: PaintingPlan | null

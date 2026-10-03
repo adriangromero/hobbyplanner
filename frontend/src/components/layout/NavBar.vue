@@ -26,13 +26,6 @@
             >
               Inventario
             </router-link>
-            <router-link
-              to="/armies"
-              class="text-xs font-medium text-gray-500 hover:text-blue-600 transition-colors"
-              active-class="text-blue-600"
-            >
-              Ejércitos
-            </router-link>
           </div>
         </div>
 
@@ -117,7 +110,6 @@
 import { ref, computed } from 'vue'
 import { useTimerStore } from '@/stores/timerStore'
 import { useProjectStore } from '@/stores/projectStore'
-import { useArmyStore } from '@/stores/armyStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useBlockingAction } from '@/composables/useBlockingAction'
 import { useToast } from '@/composables/useToast'
@@ -126,7 +118,6 @@ import BlockingOverlay from '@/components/ui/BlockingOverlay.vue'
 
 const timer        = useTimerStore()
 const projectStore = useProjectStore()
-const armyStore    = useArmyStore()
 const authStore    = useAuthStore()
 const toast        = useToast()
 const { loading, loadingMessage, run } = useBlockingAction()
@@ -164,7 +155,7 @@ async function handleStop() {
     if (result.kind === 'work-session') {
       projectStore.addSessionToItem(result.itemId, result.session)
     } else {
-      armyStore.applyPaintingSession(result.session)
+      projectStore.applyPaintingSession(result.session)
     }
     toast.success(`Sesión finalizada — ${formatHours(result.session.durationHours)}`)
   })

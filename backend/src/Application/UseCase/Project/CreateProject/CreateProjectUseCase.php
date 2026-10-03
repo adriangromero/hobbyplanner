@@ -20,6 +20,7 @@ final class CreateProjectUseCase
             $request->userId(),
             $request->name(),
             $request->description(),
+            $request->type(),
         );
 
         $this->projectRepository->save($project);

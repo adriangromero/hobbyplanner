@@ -14,6 +14,7 @@
         <field name="name" type="string" column="name" length="255"/>
         <field name="description" type="text" column="description"/>
         <field name="status" type="project_status" column="status" length="20"/>
+        <field name="type" type="project_type" column="project_type" length="20"/>
         <field name="createdAt" type="datetime_immutable" column="created_at"/>
         <field name="updatedAt" type="datetime_immutable" column="updated_at"/>
 

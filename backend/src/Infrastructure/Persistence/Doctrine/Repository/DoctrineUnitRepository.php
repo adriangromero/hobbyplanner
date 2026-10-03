@@ -6,7 +6,7 @@ namespace App\Infrastructure\Persistence\Doctrine\Repository;
 
 use App\Domain\Entity\Unit;
 use App\Domain\Repository\UnitRepositoryInterface;
-use App\Domain\ValueObject\ArmyId;
+use App\Domain\ValueObject\ProjectId;
 use App\Domain\ValueObject\UnitId;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -20,8 +20,8 @@ final class DoctrineUnitRepository extends ServiceEntityRepository implements Un
     {
         return $this->createQueryBuilder('u')->where('u.id = :id')->setParameter('id', $id->value())->getQuery()->getOneOrNullResult();
     }
-    public function findByArmy(ArmyId $armyId): array
+    public function findByProject(ProjectId $projectId): array
     {
-        return $this->createQueryBuilder('u')->where('u.armyId = :armyId')->setParameter('armyId', $armyId->value())->orderBy('u.name', 'ASC')->getQuery()->getResult();
+        return $this->createQueryBuilder('u')->where('u.projectId = :projectId')->setParameter('projectId', $projectId->value())->orderBy('u.name', 'ASC')->getQuery()->getResult();
     }
 }

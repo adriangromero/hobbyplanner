@@ -8,6 +8,7 @@ use App\Domain\Exception\ValidationException;
 use App\Domain\Security\OwnableResource;
 use App\Domain\ValueObject\ProjectId;
 use App\Domain\ValueObject\ProjectStatus;
+use App\Domain\ValueObject\ProjectType;
 use App\Domain\ValueObject\UserId;
 use DateTimeImmutable;
 
@@ -18,14 +19,16 @@ final class Project implements OwnableResource
     private string $name;
     private string $description;
     private ProjectStatus $status;
+    private ProjectType $type;
     private DateTimeImmutable $createdAt;
     private DateTimeImmutable $updatedAt;
 
-    private function __construct(ProjectId $id, UserId $userId, string $name, string $description)
+    private function __construct(ProjectId $id, UserId $userId, string $name, string $description, ProjectType $type)
     {
         $this->id        = $id;
         $this->userId    = $userId;
         $this->status    = ProjectStatus::ACTIVE;
+        $this->type      = $type;
         $this->createdAt = new DateTimeImmutable();
         $this->updatedAt = new DateTimeImmutable();
 
@@ -33,9 +36,14 @@ final class Project implements OwnableResource
         $this->updateDescription($description);
     }
 
-    public static function create(UserId $userId, string $name, string $description): self
+    public static function create(
+        UserId $userId,
+        string $name,
+        string $description,
+        ProjectType $type = ProjectType::GENERAL,
+    ): self
     {
-        return new self(ProjectId::create(), $userId, $name, $description);
+        return new self(ProjectId::create(), $userId, $name, $description, $type);
     }
 
     public function rename(string $name): void
@@ -72,6 +80,7 @@ final class Project implements OwnableResource
     public function name(): string               { return $this->name; }
     public function description(): string        { return $this->description; }
     public function status(): ProjectStatus      { return $this->status; }
+    public function type(): ProjectType          { return $this->type; }
     public function createdAt(): DateTimeImmutable { return $this->createdAt; }
     public function updatedAt(): DateTimeImmutable { return $this->updatedAt; }
 }

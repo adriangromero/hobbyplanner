@@ -22,8 +22,8 @@ export const projectApi = {
     return data
   },
 
-  async create(name: string, description: string): Promise<Project> {
-    const { data } = await api.post('/projects', { name, description })
+  async create(name: string, description: string, type: Project['type'] = 'general'): Promise<Project> {
+    const { data } = await api.post('/projects', { name, description, type })
     return data
   },
 

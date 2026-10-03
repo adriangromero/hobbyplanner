@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Domain\Service;
 
 use App\Domain\Entity\Item;
+use App\Domain\Entity\PaintingPlan;
+use App\Domain\Entity\PaintingSession;
 use App\Domain\Entity\WorkSession;
 use App\Domain\Service\ProjectEstimator;
 use App\Domain\ValueObject\ProjectId;
+use App\Domain\ValueObject\UnitId;
 use App\Domain\ValueObject\UserId;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
@@ -162,6 +165,30 @@ final class ProjectEstimatorTest extends TestCase
         $this->assertSame(10.0, $estimation->estimatedHours());
         $this->assertSame(3.0, $estimation->workedHours());
         $this->assertSame(0.0, $estimation->remainingHours());
+    }
+
+    public function testPaintingPlansAndSessionsAreIncludedInProjectEstimate(): void
+    {
+        $plan = PaintingPlan::create(UnitId::create(), $this->userId, 8.0);
+        $session = PaintingSession::record(
+            $plan->id(),
+            $this->userId,
+            7200,
+            new DateTimeImmutable('2026-03-01 10:00:00'),
+        );
+
+        $estimation = $this->estimator->estimate(
+            new DateTimeImmutable('-14 days'),
+            [],
+            [],
+            [$plan],
+            [$session],
+        );
+
+        $this->assertSame(8.0, $estimation->estimatedHours());
+        $this->assertSame(2.0, $estimation->workedHours());
+        $this->assertSame(6.0, $estimation->remainingHours());
+        $this->assertSame(1, $estimation->activeDays());
     }
 
     // ── Helpers ──────────────────────────────────────────────

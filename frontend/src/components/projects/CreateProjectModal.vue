@@ -22,6 +22,14 @@
             />
           </div>
           <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de proyecto</label>
+            <select v-model="form.type" class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+              <option value="general">Proyecto general</option>
+              <option value="army">Ejército</option>
+            </select>
+            <p class="text-xs text-gray-500 mt-1">Un ejército también es un proyecto; añade inventario y progreso de pintado desde su detalle.</p>
+          </div>
+          <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
             <textarea
               v-model="form.description"
@@ -60,6 +68,7 @@ import { useProjectStore } from '@/stores/projectStore'
 import { useToast } from '@/composables/useToast'
 import { projectApi } from '@/api/projectApi'
 
+const props = withDefaults(defineProps<{ initialType?: 'general' | 'army' }>(), { initialType: 'general' })
 const emit = defineEmits<{ close: [] }>()
 
 const projectStore = useProjectStore()
@@ -67,7 +76,7 @@ const toast        = useToast()
 
 const loading = ref(false)
 const error   = ref<string | null>(null)
-const form    = ref({ name: '', description: '' })
+const form    = ref<{ name: string; description: string; type: 'general' | 'army' }>({ name: '', description: '', type: props.initialType })
 
 async function handleCreate() {
   error.value = null
@@ -77,17 +86,13 @@ async function handleCreate() {
     return
   }
 
-  if (!form.value.description.trim()) {
-    error.value = 'La descripción es obligatoria'
-    return
-  }
-
   loading.value = true
 
   try {
     const data = await projectApi.create(
       form.value.name.trim(),
       form.value.description.trim(),
+      form.value.type,
     )
 
     projectStore.addProject({
@@ -95,6 +100,7 @@ async function handleCreate() {
       name:           data.name,
       description:    data.description,
       status:         data.status ?? 'active',
+      type:           data.type ?? form.value.type,
       createdAt:      data.createdAt,
     })
 

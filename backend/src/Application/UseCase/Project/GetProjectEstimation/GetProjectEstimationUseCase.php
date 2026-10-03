@@ -9,6 +9,9 @@ use App\Application\Security\OwnershipGuard;
 use App\Domain\Repository\ItemRepositoryInterface;
 use App\Domain\Repository\ProjectRepositoryInterface;
 use App\Domain\Repository\WorkSessionRepositoryInterface;
+use App\Domain\Repository\UnitRepositoryInterface;
+use App\Domain\Repository\PaintingPlanRepositoryInterface;
+use App\Domain\Repository\PaintingSessionRepositoryInterface;
 use App\Domain\Exception\ProjectNotFoundException;
 use App\Domain\Service\ProjectEstimator;
 
@@ -18,6 +21,9 @@ final class GetProjectEstimationUseCase
         private readonly ProjectRepositoryInterface     $projectRepository,
         private readonly ItemRepositoryInterface        $itemRepository,
         private readonly WorkSessionRepositoryInterface $workSessionRepository,
+        private readonly UnitRepositoryInterface $unitRepository,
+        private readonly PaintingPlanRepositoryInterface $paintingPlanRepository,
+        private readonly PaintingSessionRepositoryInterface $paintingSessionRepository,
         private readonly ProjectEstimator               $estimator,
         private readonly OwnershipGuard                 $ownershipGuard,
     ) {}
@@ -36,11 +42,21 @@ final class GetProjectEstimationUseCase
 
         $items    = $this->itemRepository->findByProject($projectId);
         $sessions = $this->workSessionRepository->findByProject($projectId);
+        $units = $this->unitRepository->findByProject($projectId);
+        $plans = $units === [] ? [] : $this->paintingPlanRepository->findByUnits(
+            array_map(static fn($unit) => $unit->id(), $units),
+        );
+        $sessionsByPlan = $plans === [] ? [] : $this->paintingSessionRepository->findGroupedByPlans(
+            array_map(static fn($plan) => $plan->id(), $plans),
+        );
+        $paintingSessions = array_merge(...array_values($sessionsByPlan ?: [[]]));
 
         $estimation = $this->estimator->estimate(
             $project->createdAt(),
             $items,
-            $sessions
+            $sessions,
+            $plans,
+            $paintingSessions,
         );
 
         return new GetProjectEstimationResponse(

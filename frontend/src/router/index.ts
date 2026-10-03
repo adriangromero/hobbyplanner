@@ -32,18 +32,8 @@ const router = createRouter({
       component: () => import('@/views/inventory/InventoryView.vue'),
       meta: { requiresAuth: true }
     },
-    {
-      path: '/armies',
-      name: 'ArmyList',
-      component: () => import('@/views/armies/ArmyListView.vue'),
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/armies/:id',
-      name: 'ArmyDetail',
-      component: () => import('@/views/armies/ArmyDetailView.vue'),
-      meta: { requiresAuth: true }
-    },
+    { path: '/armies', redirect: { name: 'ProjectsList', query: { type: 'army' } } },
+    { path: '/armies/:id', redirect: to => ({ name: 'ProjectDetail', params: { id: to.params.id } }) },
   ]
 })
 

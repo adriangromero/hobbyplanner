@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Service;
 
 use App\Domain\Entity\Item;
+use App\Domain\Entity\PaintingPlan;
+use App\Domain\Entity\PaintingSession;
 use App\Domain\Entity\WorkSession;
 use App\Domain\ValueObject\ProjectEstimation;
 use DateTimeImmutable;
@@ -13,24 +15,29 @@ final class ProjectEstimator
 {
     /**
      * @param Item[]        $items
-     * @param WorkSession[] $sessions
+     * @param WorkSession[]    $sessions
+     * @param PaintingPlan[]   $paintingPlans
+     * @param PaintingSession[] $paintingSessions
      */
     public function estimate(
         DateTimeImmutable $projectStart,
         array $items,
         array $sessions,
+        array $paintingPlans = [],
+        array $paintingSessions = [],
     ): ProjectEstimation {
         $closedSessions = $this->closedSessions($sessions);
-        $totalWorkedHours = $this->sumDuration($closedSessions);
+        $totalWorkedHours = $this->sumDuration($closedSessions) + $this->sumPaintingDuration($paintingSessions);
 
         $pendingItems = array_filter($items, fn(Item $i) => !$i->status()->isCompleted());
 
-        $totalEstimatedHours   = $this->sumEstimated($items);
+        $totalEstimatedHours   = $this->sumEstimated($items) + $this->sumPaintingEstimated($paintingPlans);
         $pendingEstimatedHours = $this->sumEstimated($pendingItems);
         $pendingWorkedHours    = $this->workedHoursForItems($closedSessions, $pendingItems);
-        $remainingHours        = max(0.0, $pendingEstimatedHours - $pendingWorkedHours);
+        $remainingHours        = max(0.0, $pendingEstimatedHours - $pendingWorkedHours)
+            + $this->remainingPaintingHours($paintingPlans, $paintingSessions);
 
-        $activeDays       = $this->countActiveDays($closedSessions);
+        $activeDays       = $this->countActiveDays($closedSessions, $paintingSessions);
         $today            = new DateTimeImmutable();
         $daysSinceStart   = max(1, $projectStart->diff($today)->days);
         $weeksSinceStart  = max(1.0, $daysSinceStart / 7);
@@ -68,6 +75,38 @@ final class ProjectEstimator
     private function sumEstimated(array $items): float
     {
         return array_sum(array_map(fn(Item $i) => $i->estimatedHours(), $items));
+    }
+
+    /** @param PaintingPlan[] $plans */
+    private function sumPaintingEstimated(array $plans): float
+    {
+        return array_sum(array_map(static fn(PaintingPlan $plan): float => $plan->estimatedHours(), $plans));
+    }
+
+    /** @param PaintingSession[] $sessions */
+    private function sumPaintingDuration(array $sessions): float
+    {
+        return array_sum(array_map(static fn(PaintingSession $session): float => $session->durationHours(), $sessions));
+    }
+
+    /**
+     * @param PaintingPlan[] $plans
+     * @param PaintingSession[] $sessions
+     */
+    private function remainingPaintingHours(array $plans, array $sessions): float
+    {
+        $workedByPlan = [];
+        foreach ($sessions as $session) {
+            $id = $session->paintingPlanId()->value();
+            $workedByPlan[$id] = ($workedByPlan[$id] ?? 0.0) + $session->durationHours();
+        }
+
+        $remaining = 0.0;
+        foreach ($plans as $plan) {
+            $remaining += max(0.0, $plan->estimatedHours() - ($workedByPlan[$plan->id()->value()] ?? 0.0));
+        }
+
+        return $remaining;
     }
 
     /**
@@ -113,12 +152,15 @@ final class ProjectEstimator
     /**
      * @param WorkSession[] $closedSessions
      */
-    private function countActiveDays(array $closedSessions): int
+    private function countActiveDays(array $closedSessions, array $paintingSessions = []): int
     {
         $days = [];
 
         foreach ($closedSessions as $session) {
             $days[$session->workedDay()] = true;
+        }
+        foreach ($paintingSessions as $session) {
+            $days[$session->workedAt()->format('Y-m-d')] = true;
         }
 
         return count($days);

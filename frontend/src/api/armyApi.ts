@@ -1,24 +1,14 @@
 import api from '@/api/axios'
-import type { Army, ArmyUnit, PaintingPlan, PaintingSession, UnitComponent } from '@/types/models'
+import type { ProjectUnit, PaintingPlan, PaintingSession, UnitComponent } from '@/types/models'
 
 export const armyApi = {
-  async list(): Promise<Army[]> {
-    const { data } = await api.get('/armies')
-    return data.armies
-  },
-
-  async create(name: string): Promise<Army> {
-    const { data } = await api.post('/armies', { name })
-    return data
-  },
-
-  async units(armyId: string): Promise<ArmyUnit[]> {
-    const { data } = await api.get(`/armies/${armyId}/units`)
+  async units(projectId: string): Promise<ProjectUnit[]> {
+    const { data } = await api.get(`/projects/${projectId}/units`)
     return data.units
   },
 
-  async createUnit(armyId: string, name: string): Promise<ArmyUnit> {
-    const { data } = await api.post(`/armies/${armyId}/units`, { name })
+  async createUnit(projectId: string, name: string): Promise<ProjectUnit> {
+    const { data } = await api.post(`/projects/${projectId}/units`, { name })
     return data
   },
 

@@ -13,6 +13,7 @@ final class ProjectDTO
         public readonly string $name,
         public readonly string $description,
         public readonly string $status,
+        public readonly string $type,
         public readonly string $createdAt,
         public readonly string $updatedAt,
     ) {}
@@ -24,6 +25,7 @@ final class ProjectDTO
             name:        $project->name(),
             description: $project->description(),
             status:      $project->status()->value,
+            type:        $project->type()->value,
             createdAt:   $project->createdAt()->format('c'),
             updatedAt:   $project->updatedAt()->format('c'),
         );
@@ -36,6 +38,7 @@ final class ProjectDTO
             'name'        => $this->name,
             'description' => $this->description,
             'status'      => $this->status,
+            'type'        => $this->type,
             'createdAt'   => $this->createdAt,
             'updatedAt'   => $this->updatedAt,
         ];

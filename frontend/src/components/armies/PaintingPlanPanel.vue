@@ -54,20 +54,20 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useArmyStore } from '@/stores/armyStore'
+import { useProjectStore } from '@/stores/projectStore'
 import { useTimerStore } from '@/stores/timerStore'
 import { formatHours } from '@/utils/format'
-import type { ArmyUnit } from '@/types/models'
+import type { ProjectUnit } from '@/types/models'
 
-const props = defineProps<{ unit: ArmyUnit }>()
-const armyStore = useArmyStore()
+const props = defineProps<{ unit: ProjectUnit }>()
+const projectStore = useProjectStore()
 const timer = useTimerStore()
 const estimatedHours = ref<number | null>(null)
 const saving = ref(false)
 const showSessions = ref(false)
 const loadingSessions = ref(false)
 const error = ref('')
-const sessions = computed(() => props.unit.paintingPlan ? armyStore.sessionsByPlan[props.unit.paintingPlan.id] ?? [] : [])
+const sessions = computed(() => props.unit.paintingPlan ? projectStore.sessionsByPlan[props.unit.paintingPlan.id] ?? [] : [])
 const isActive = computed(() => timer.isRunning && timer.activeTargetType === 'painting-plan' && timer.activePaintingPlanId === props.unit.paintingPlan?.id)
 const progressPercent = computed(() => {
   const plan = props.unit.paintingPlan
@@ -85,7 +85,7 @@ async function createPlan() {
   saving.value = true
   error.value = ''
   try {
-    await armyStore.createPaintingPlan(props.unit.id, estimatedHours.value)
+    await projectStore.createPaintingPlan(props.unit.id, estimatedHours.value)
   } catch (e: any) {
     error.value = e.response?.data?.error ?? 'No se pudo crear el plan de pintado.'
   } finally {
@@ -102,7 +102,7 @@ async function loadSessions(planId: string) {
   loadingSessions.value = true
   error.value = ''
   try {
-    await armyStore.loadPaintingSessions(planId)
+    await projectStore.loadPaintingSessions(planId)
   } catch (e: any) {
     error.value = e.response?.data?.error ?? 'No se pudieron cargar las sesiones.'
   } finally {
@@ -128,7 +128,7 @@ async function stopTimer() {
   if (!result || result.kind !== 'painting-plan') {
     error.value = 'No se pudo guardar la sesión de pintado.'
   } else {
-    armyStore.applyPaintingSession(result.session)
+    projectStore.applyPaintingSession(result.session)
     if (showSessions.value) await loadSessions(result.planId)
   }
   saving.value = false

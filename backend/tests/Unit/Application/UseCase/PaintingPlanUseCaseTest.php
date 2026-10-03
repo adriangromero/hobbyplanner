@@ -15,7 +15,7 @@ use App\Domain\Entity\Unit;
 use App\Domain\Repository\PaintingPlanRepositoryInterface;
 use App\Domain\Repository\PaintingSessionRepositoryInterface;
 use App\Domain\Repository\UnitRepositoryInterface;
-use App\Domain\ValueObject\ArmyId;
+use App\Domain\ValueObject\ProjectId;
 use App\Domain\ValueObject\UserId;
 use PHPUnit\Framework\TestCase;
 
@@ -24,7 +24,7 @@ final class PaintingPlanUseCaseTest extends TestCase
     public function testCreatesPlanForOwnedUnit(): void
     {
         $userId = UserId::create();
-        $unit = Unit::create(ArmyId::create(), $userId, 'Escuadra');
+        $unit = Unit::create(ProjectId::create(), $userId, 'Escuadra');
         $units = $this->createMock(UnitRepositoryInterface::class);
         $units->method('findById')->willReturn($unit);
         $plans = $this->createMock(PaintingPlanRepositoryInterface::class);
@@ -44,7 +44,7 @@ final class PaintingPlanUseCaseTest extends TestCase
     public function testRecordsSessionAgainstOwnedPlan(): void
     {
         $userId = UserId::create();
-        $unit = Unit::create(ArmyId::create(), $userId, 'Escuadra');
+        $unit = Unit::create(ProjectId::create(), $userId, 'Escuadra');
         $plan = PaintingPlan::create($unit->id(), $userId, 8.0);
         $plans = $this->createMock(PaintingPlanRepositoryInterface::class);
         $plans->method('findById')->willReturn($plan);

@@ -9,7 +9,7 @@ doctrine:
             project_id: App\Infrastructure\Persistence\Doctrine\Type\ProjectIdType
             item_status: App\Infrastructure\Persistence\Doctrine\Type\ItemStatusType
             project_status: App\Infrastructure\Persistence\Doctrine\Type\ProjectStatusType
-            army_id: App\Infrastructure\Persistence\Doctrine\Type\ArmyIdType
+            project_type: App\Infrastructure\Persistence\Doctrine\Type\ProjectTypeType
             unit_id: App\Infrastructure\Persistence\Doctrine\Type\UnitIdType
             unit_component_id: App\Infrastructure\Persistence\Doctrine\Type\UnitComponentIdType
             painting_plan_id: App\Infrastructure\Persistence\Doctrine\Type\PaintingPlanIdType

@@ -6,7 +6,7 @@ namespace App\Domain\Entity;
 
 use App\Domain\Exception\ValidationException;
 use App\Domain\Security\OwnableResource;
-use App\Domain\ValueObject\ArmyId;
+use App\Domain\ValueObject\ProjectId;
 use App\Domain\ValueObject\UnitId;
 use App\Domain\ValueObject\UserId;
 use DateTimeImmutable;
@@ -18,7 +18,7 @@ final class Unit implements OwnableResource
 
     private function __construct(
         private UnitId $id,
-        private ArmyId $armyId,
+        private ProjectId $projectId,
         private UserId $userId,
         private string $name,
     ) {
@@ -27,9 +27,9 @@ final class Unit implements OwnableResource
         $this->rename($name);
     }
 
-    public static function create(ArmyId $armyId, UserId $userId, string $name): self
+    public static function create(ProjectId $projectId, UserId $userId, string $name): self
     {
-        return new self(UnitId::create(), $armyId, $userId, $name);
+        return new self(UnitId::create(), $projectId, $userId, $name);
     }
 
     public function rename(string $name): void
@@ -43,7 +43,7 @@ final class Unit implements OwnableResource
     }
 
     public function id(): UnitId { return $this->id; }
-    public function armyId(): ArmyId { return $this->armyId; }
+    public function projectId(): ProjectId { return $this->projectId; }
     public function userId(): UserId { return $this->userId; }
     public function ownerId(): UserId { return $this->userId; }
     public function name(): string { return $this->name; }

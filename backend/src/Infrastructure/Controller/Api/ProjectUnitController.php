@@ -6,14 +6,10 @@ namespace App\Infrastructure\Controller\Api;
 
 use App\Application\UseCase\Army\AddUnitComponent\AddUnitComponentRequest;
 use App\Application\UseCase\Army\AddUnitComponent\AddUnitComponentUseCase;
-use App\Application\UseCase\Army\CreateArmy\CreateArmyRequest;
-use App\Application\UseCase\Army\CreateArmy\CreateArmyUseCase;
 use App\Application\UseCase\Army\CreatePaintingPlan\CreatePaintingPlanRequest;
 use App\Application\UseCase\Army\CreatePaintingPlan\CreatePaintingPlanUseCase;
 use App\Application\UseCase\Army\CreateUnit\CreateUnitRequest;
 use App\Application\UseCase\Army\CreateUnit\CreateUnitUseCase;
-use App\Application\UseCase\Army\ListArmies\ListArmiesRequest;
-use App\Application\UseCase\Army\ListArmies\ListArmiesUseCase;
 use App\Application\UseCase\Army\ListArmyUnits\ListArmyUnitsRequest;
 use App\Application\UseCase\Army\ListArmyUnits\ListArmyUnitsUseCase;
 use App\Application\UseCase\Army\ListPaintingSessions\ListPaintingSessionsRequest;
@@ -32,35 +28,20 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
 #[Route('/api')]
-final class ArmyController extends ApiController
+final class ProjectUnitController extends ApiController
 {
-    #[Route('/armies', name: 'api_armies_list', methods: ['GET'])]
-    public function listArmies(ListArmiesUseCase $useCase): JsonResponse
+    #[Route('/projects/{projectId}/units', name: 'api_project_units_list', methods: ['GET'])]
+    public function listUnits(string $projectId, ListArmyUnitsUseCase $useCase): JsonResponse
     {
-        $armies = $useCase->execute(new ListArmiesRequest($this->currentUserId()->value()));
-        return new JsonResponse(['armies' => array_map(static fn($army) => $army->toArray(), $armies)]);
-    }
-
-    #[Route('/armies', name: 'api_armies_create', methods: ['POST'])]
-    public function createArmy(Request $request, CreateArmyUseCase $useCase): JsonResponse
-    {
-        $data = $this->jsonBody($request, ['name']);
-        $army = $useCase->execute(new CreateArmyRequest($this->currentUserId()->value(), (string) $data['name']));
-        return new JsonResponse($army->toArray(), Response::HTTP_CREATED);
-    }
-
-    #[Route('/armies/{armyId}/units', name: 'api_army_units_list', methods: ['GET'])]
-    public function listUnits(string $armyId, ListArmyUnitsUseCase $useCase): JsonResponse
-    {
-        $units = $useCase->execute(new ListArmyUnitsRequest($armyId));
+        $units = $useCase->execute(new ListArmyUnitsRequest($projectId));
         return new JsonResponse(['units' => array_map(static fn($unit) => $unit->toArray(), $units)]);
     }
 
-    #[Route('/armies/{armyId}/units', name: 'api_army_units_create', methods: ['POST'])]
-    public function createUnit(string $armyId, Request $request, CreateUnitUseCase $useCase): JsonResponse
+    #[Route('/projects/{projectId}/units', name: 'api_project_units_create', methods: ['POST'])]
+    public function createUnit(string $projectId, Request $request, CreateUnitUseCase $useCase): JsonResponse
     {
         $data = $this->jsonBody($request, ['name']);
-        $unit = $useCase->execute(new CreateUnitRequest($armyId, $this->currentUserId()->value(), (string) $data['name']));
+        $unit = $useCase->execute(new CreateUnitRequest($projectId, $this->currentUserId()->value(), (string) $data['name']));
         return new JsonResponse($unit->toArray(), Response::HTTP_CREATED);
     }
 
