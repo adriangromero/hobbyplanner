@@ -14,15 +14,23 @@ final class PaintingPlanDTO
         private float $estimatedHours,
         private float $workedHours,
         private float $remainingHours,
+        private ?ProjectEstimationDTO $estimation,
     ) {}
 
-    public static function fromEntity(PaintingPlan $plan, float $workedHours = 0.0): self
+    public static function fromEntity(PaintingPlan $plan, float $workedHours = 0.0, ?ProjectEstimationDTO $estimation = null): self
     {
-        return new self($plan->id()->value(), $plan->unitId()->value(), $plan->estimatedHours(), $workedHours, max(0.0, $plan->estimatedHours() - $workedHours));
+        return new self($plan->id()->value(), $plan->unitId()->value(), $plan->estimatedHours(), $workedHours, max(0.0, $plan->estimatedHours() - $workedHours), $estimation);
     }
 
     public function toArray(): array
     {
-        return ['id' => $this->id, 'unitId' => $this->unitId, 'estimatedHours' => $this->estimatedHours, 'workedHours' => $this->workedHours, 'remainingHours' => $this->remainingHours];
+        return [
+            'id' => $this->id,
+            'unitId' => $this->unitId,
+            'estimatedHours' => $this->estimatedHours,
+            'workedHours' => $this->workedHours,
+            'remainingHours' => $this->remainingHours,
+            'estimation' => $this->estimation?->toArray(),
+        ];
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Application\UseCase\Army\ListArmyUnits;
 
 use App\Application\DTO\PaintingPlanDTO;
+use App\Application\DTO\ProjectEstimationDTO;
 use App\Application\DTO\UnitDTO;
 use App\Application\Security\OwnershipGuard;
 use App\Domain\Entity\PaintingSession;
@@ -14,6 +15,7 @@ use App\Domain\Repository\PaintingPlanRepositoryInterface;
 use App\Domain\Repository\PaintingSessionRepositoryInterface;
 use App\Domain\Repository\UnitComponentRepositoryInterface;
 use App\Domain\Repository\UnitRepositoryInterface;
+use App\Domain\Service\ProjectEstimator;
 use App\Domain\ValueObject\ProjectType;
 
 final class ListArmyUnitsUseCase
@@ -24,6 +26,7 @@ final class ListArmyUnitsUseCase
         private readonly UnitComponentRepositoryInterface $components,
         private readonly PaintingPlanRepositoryInterface $plans,
         private readonly PaintingSessionRepositoryInterface $sessions,
+        private readonly ProjectEstimator $estimator,
         private readonly OwnershipGuard $ownership,
     ) {}
 
@@ -46,11 +49,17 @@ final class ListArmyUnitsUseCase
             $plan = $planByUnit[$unit->id()->value()] ?? null;
             $planData = null;
             if ($plan !== null) {
+                $planSessions = $sessionsByPlan[$plan->id()->value()] ?? [];
                 $workedHours = array_sum(array_map(
                     static fn(PaintingSession $session): float => $session->durationHours(),
-                    $sessionsByPlan[$plan->id()->value()] ?? [],
+                    $planSessions,
                 ));
-                $planData = PaintingPlanDTO::fromEntity($plan, $workedHours)->toArray();
+                $unitEstimation = $this->estimator->estimate($plan->createdAt(), [], [], [$plan], $planSessions);
+                $planData = PaintingPlanDTO::fromEntity(
+                    $plan,
+                    $workedHours,
+                    ProjectEstimationDTO::fromValueObject($unitEstimation),
+                )->toArray();
             }
             return UnitDTO::fromEntity($unit, $this->components->findByUnit($unit->id()), $planData);
         }, $units);

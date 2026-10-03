@@ -27,6 +27,16 @@
       <div class="mt-3 h-2 rounded-full bg-gray-200 overflow-hidden" role="progressbar" :aria-valuenow="progressPercent" aria-valuemin="0" aria-valuemax="100" :aria-label="`Tiempo estimado trabajado: ${progressPercent}%`">
         <div class="h-full bg-green-600 transition-all" :style="{ width: `${progressPercent}%` }" />
       </div>
+      <div v-if="unit.paintingPlan.estimation?.activeDays" class="mt-3 rounded-lg border bg-white px-3 py-2 text-sm text-gray-700">
+        <p v-if="unit.paintingPlan.estimation.estimatedCompletionDate && unit.paintingPlan.remainingHours > 0">
+          Para esta unidad, el ritmo actual apunta al <strong>{{ formatEstimatedDate(unit.paintingPlan.estimation.estimatedCompletionDate) }}</strong>.
+        </p>
+        <p class="text-xs text-gray-600 mt-1">
+          {{ unit.paintingPlan.estimation.velocityPerActiveDay.toFixed(1) }} h por día de pintado ·
+          {{ unit.paintingPlan.estimation.frequencyDaysPerWeek.toFixed(1) }} días por semana
+        </p>
+      </div>
+      <p v-else class="mt-3 text-xs text-gray-600">La fecha estimada de esta unidad aparecerá tras registrar sesiones de pintado.</p>
       <div class="flex flex-wrap items-center justify-between gap-3 mt-4">
         <p v-if="isActive" class="font-mono text-sm font-semibold text-red-700">Sesión en curso · {{ timer.elapsedFormatted }}</p>
         <p v-else-if="timer.isRunning" class="text-sm text-gray-600">Temporizador activo en {{ timer.activeItemName }}</p>
@@ -129,6 +139,7 @@ async function stopTimer() {
     error.value = 'No se pudo guardar la sesión de pintado.'
   } else {
     projectStore.applyPaintingSession(result.session)
+    await projectStore.refreshPaintingEstimates()
     if (showSessions.value) await loadSessions(result.planId)
   }
   saving.value = false
@@ -136,5 +147,9 @@ async function stopTimer() {
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+}
+
+function formatEstimatedDate(value: string): string {
+  return new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium' }).format(new Date(`${value}T00:00:00`))
 }
 </script>

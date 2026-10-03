@@ -11,7 +11,7 @@
         v-if="progressPercent >= 100"
         class="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700"
       >
-        Completado
+        Horas previstas alcanzadas
       </span>
     </div>
 

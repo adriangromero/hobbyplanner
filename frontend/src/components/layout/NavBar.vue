@@ -153,7 +153,10 @@ async function handleStop() {
       return
     }
     if (result.kind === 'work-session') projectStore.addSessionToItem(result.itemId, result.session)
-    else projectStore.applyPaintingSession(result.session)
+    else {
+      projectStore.applyPaintingSession(result.session)
+      await projectStore.refreshPaintingEstimates()
+    }
     toast.success(`Sesión finalizada — ${formatHours(result.session.durationHours)}`)
   })
 }

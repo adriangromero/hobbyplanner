@@ -140,6 +140,7 @@ export const useProjectStore = defineStore('project', {
     async recordPaintingSession(planId: string, durationSeconds: number): Promise<PaintingSession> {
       const session = await armyApi.recordSession(planId, durationSeconds)
       this.applyPaintingSession(session)
+      await this.refreshPaintingEstimates()
       return session
     },
 
@@ -153,7 +154,19 @@ export const useProjectStore = defineStore('project', {
         plan.remainingHours = Math.max(0, plan.estimatedHours - plan.workedHours)
         break
       }
-      void this.refreshEstimation()
+    },
+
+    async refreshPaintingEstimates() {
+      await Promise.all([this.refreshEstimation(), this.refreshArmyUnits()])
+    },
+
+    async refreshArmyUnits() {
+      if (!this.currentProject || this.currentProject.type !== 'army') return
+      try {
+        this.units = await armyApi.units(this.currentProject.id)
+      } catch {
+        // El resumen de unidad se actualizará al volver a cargar el ejército.
+      }
     },
 
     findUnit(unitId: string): ProjectUnit | undefined {

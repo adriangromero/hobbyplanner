@@ -11,11 +11,21 @@
         <span class="block text-sm text-gray-600 mt-0.5">
           {{ componentCountLabel }} · {{ paintedTotal }}/{{ totalCount }} pintados
         </span>
-        <span v-if="unit.paintingPlan" class="block text-xs text-gray-600 mt-1">
-          Pintado: {{ formatHours(unit.paintingPlan.workedHours) }} de {{ formatHours(unit.paintingPlan.estimatedHours) }} ·
-          {{ formatHours(unit.paintingPlan.remainingHours) }} restantes
+        <span v-if="unit.paintingPlan" class="mt-1 block text-xs text-gray-600">
+          <span class="block">
+            Estimación de esta unidad: {{ formatHours(unit.paintingPlan.estimatedHours) }} estimadas ·
+            {{ formatHours(unit.paintingPlan.workedHours) }} trabajadas ·
+            {{ formatHours(unit.paintingPlan.remainingHours) }} restantes
+          </span>
+          <span v-if="unit.paintingPlan.estimation?.estimatedCompletionDate && unit.paintingPlan.remainingHours > 0" class="block">
+            Finalización estimada: {{ formatEstimatedDate(unit.paintingPlan.estimation.estimatedCompletionDate) }}
+          </span>
+          <span v-else-if="unit.paintingPlan.remainingHours === 0" class="block">
+            Horas estimadas alcanzadas
+          </span>
+          <span v-else class="block">Fecha estimada disponible tras registrar sesiones</span>
         </span>
-        <span v-else class="block text-xs text-gray-500 mt-1">Sin plan de pintado</span>
+        <span v-else class="mt-1 block text-xs text-gray-500">Sin plan de pintado</span>
       </span>
       <span class="flex items-center gap-3 shrink-0">
         <span class="hidden sm:inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
@@ -241,6 +251,10 @@ function setPaintedFromInput(component: UnitComponent, event: Event) {
     return
   }
   void setPainted(component, value)
+}
+
+function formatEstimatedDate(date: string): string {
+  return new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium' }).format(new Date(`${date}T00:00:00`))
 }
 
 async function setPainted(component: UnitComponent, nextValue: number, nextSlots?: number[]) {

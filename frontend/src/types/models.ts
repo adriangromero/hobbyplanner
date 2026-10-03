@@ -56,6 +56,7 @@ export type PaintingPlan = {
   estimatedHours: number
   workedHours: number
   remainingHours: number
+  estimation?: Estimation | null
 }
 
 export type UnitComponent = {
