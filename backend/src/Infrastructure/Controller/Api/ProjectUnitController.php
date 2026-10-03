@@ -31,6 +31,12 @@ use App\Application\UseCase\Army\RecordMiniaturePainting\RecordMiniaturePainting
 use App\Application\UseCase\Army\RecordMiniaturePainting\RecordMiniaturePaintingUseCase;
 use App\Application\UseCase\Army\UpdateUnitCategory\UpdateUnitCategoryRequest;
 use App\Application\UseCase\Army\UpdateUnitCategory\UpdateUnitCategoryUseCase;
+use App\Application\UseCase\Army\UpdatePaintingPlan\UpdatePaintingPlanRequest;
+use App\Application\UseCase\Army\UpdatePaintingPlan\UpdatePaintingPlanUseCase;
+use App\Application\UseCase\Army\UpdatePaintingSession\UpdatePaintingSessionRequest;
+use App\Application\UseCase\Army\UpdatePaintingSession\UpdatePaintingSessionUseCase;
+use App\Application\UseCase\Army\UpdateUnitFormation\UpdateUnitFormationRequest;
+use App\Application\UseCase\Army\UpdateUnitFormation\UpdateUnitFormationUseCase;
 use App\Domain\Exception\ValidationException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -56,6 +62,7 @@ final class ProjectUnitController extends ApiController
             $this->currentUserId()->value(),
             (string) $data['name'],
             (string) ($data['category'] ?? 'infantry'),
+            (int) ($data['modelsPerRow'] ?? 5),
         ));
         return new JsonResponse($unit->toArray(), Response::HTTP_CREATED);
     }
@@ -76,6 +83,14 @@ final class ProjectUnitController extends ApiController
     {
         $data = $this->jsonBody($request, ['category']);
         $unit = $useCase->execute(new UpdateUnitCategoryRequest($id, (string) $data['category']));
+        return new JsonResponse($unit->toArray());
+    }
+
+    #[Route('/units/{id}/formation', name: 'api_unit_formation_update', methods: ['PUT'])]
+    public function updateUnitFormation(string $id, Request $request, UpdateUnitFormationUseCase $useCase): JsonResponse
+    {
+        $data = $this->jsonBody($request, ['modelsPerRow']);
+        $unit = $useCase->execute(new UpdateUnitFormationRequest($id, (int) $data['modelsPerRow']));
         return new JsonResponse($unit->toArray());
     }
 
@@ -137,6 +152,18 @@ final class ProjectUnitController extends ApiController
         return new JsonResponse($plan->toArray(), Response::HTTP_CREATED);
     }
 
+    #[Route('/painting-plans/{id}', name: 'api_painting_plans_update', methods: ['PUT'])]
+    public function updatePaintingPlan(string $id, Request $request, UpdatePaintingPlanUseCase $useCase): JsonResponse
+    {
+        $data = $this->jsonBody($request, ['estimatedHours']);
+        $plan = $useCase->execute(new UpdatePaintingPlanRequest(
+            $id,
+            $this->currentUserId()->value(),
+            (float) $data['estimatedHours'],
+        ));
+        return new JsonResponse($plan->toArray());
+    }
+
     #[Route('/painting-plans/{id}/sessions', name: 'api_painting_sessions_create', methods: ['POST'])]
     public function recordPaintingSession(string $id, Request $request, RecordPaintingSessionUseCase $useCase): JsonResponse
     {
@@ -150,5 +177,13 @@ final class ProjectUnitController extends ApiController
     {
         $sessions = $useCase->execute(new ListPaintingSessionsRequest($id));
         return new JsonResponse(['sessions' => array_map(static fn($session) => $session->toArray(), $sessions)]);
+    }
+
+    #[Route('/painting-sessions/{id}', name: 'api_painting_sessions_update', methods: ['PUT'])]
+    public function updatePaintingSession(string $id, Request $request, UpdatePaintingSessionUseCase $useCase): JsonResponse
+    {
+        $data = $this->jsonBody($request, ['durationSeconds']);
+        $session = $useCase->execute(new UpdatePaintingSessionRequest($id, (int) $data['durationSeconds']));
+        return new JsonResponse($session->toArray());
     }
 }

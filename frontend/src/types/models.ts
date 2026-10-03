@@ -86,6 +86,7 @@ export type ProjectUnit = {
   name: string
   category: UnitCategory
   position: number
+  modelsPerRow: number
   components: UnitComponent[]
   paintingPlan: PaintingPlan | null
 }

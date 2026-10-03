@@ -31,6 +31,7 @@ final class CreateUnitUseCase
             $request->name(),
             UnitCategory::fromValue($request->category()),
             count($existingUnits),
+            $request->modelsPerRow(),
         );
         $this->units->save($unit);
         return UnitDTO::fromEntity($unit);

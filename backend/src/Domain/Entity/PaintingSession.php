@@ -47,4 +47,12 @@ class PaintingSession implements OwnableResource
     public function durationSeconds(): int { return $this->durationSeconds; }
     public function durationHours(): float { return $this->durationSeconds / 3600; }
     public function workedAt(): DateTimeImmutable { return $this->workedAt; }
+
+    public function updateDuration(int $durationSeconds): void
+    {
+        if ($durationSeconds <= 0) {
+            throw new ValidationException('La duración de la sesión debe ser mayor a 0');
+        }
+        $this->durationSeconds = $durationSeconds;
+    }
 }

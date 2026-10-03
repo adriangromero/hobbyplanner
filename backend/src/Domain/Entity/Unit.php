@@ -24,6 +24,7 @@ final class Unit implements OwnableResource
         private string $name,
         private string $category,
         private int $position,
+        private int $modelsPerRow,
     ) {
         $this->createdAt = new DateTimeImmutable();
         $this->updatedAt = $this->createdAt;
@@ -36,13 +37,15 @@ final class Unit implements OwnableResource
         string $name,
         UnitCategory $category = UnitCategory::INFANTRY,
         int $position = 0,
+        int $modelsPerRow = 5,
     ): self
     {
         if ($position < 0) {
             throw new ValidationException('La posición de la unidad no puede ser negativa');
         }
+        self::assertModelsPerRow($modelsPerRow);
 
-        return new self(UnitId::create(), $projectId, $userId, $name, $category->value, $position);
+        return new self(UnitId::create(), $projectId, $userId, $name, $category->value, $position, $modelsPerRow);
     }
 
     public function rename(string $name): void
@@ -70,6 +73,20 @@ final class Unit implements OwnableResource
         $this->updatedAt = new DateTimeImmutable();
     }
 
+    public function changeModelsPerRow(int $modelsPerRow): void
+    {
+        self::assertModelsPerRow($modelsPerRow);
+        $this->modelsPerRow = $modelsPerRow;
+        $this->updatedAt = new DateTimeImmutable();
+    }
+
+    private static function assertModelsPerRow(int $modelsPerRow): void
+    {
+        if ($modelsPerRow < 1 || $modelsPerRow > 12) {
+            throw new ValidationException('La fila debe tener entre 1 y 12 miniaturas');
+        }
+    }
+
     public function id(): UnitId { return $this->id; }
     public function projectId(): ProjectId { return $this->projectId; }
     public function userId(): UserId { return $this->userId; }
@@ -77,6 +94,7 @@ final class Unit implements OwnableResource
     public function name(): string { return $this->name; }
     public function category(): UnitCategory { return UnitCategory::from($this->category); }
     public function position(): int { return $this->position; }
+    public function modelsPerRow(): int { return $this->modelsPerRow; }
     public function createdAt(): DateTimeImmutable { return $this->createdAt; }
     public function updatedAt(): DateTimeImmutable { return $this->updatedAt; }
 }

@@ -7,8 +7,8 @@ export const armyApi = {
     return data.units
   },
 
-  async createUnit(projectId: string, name: string, category: UnitCategory): Promise<ProjectUnit> {
-    const { data } = await api.post(`/projects/${projectId}/units`, { name, category })
+  async createUnit(projectId: string, name: string, category: UnitCategory, modelsPerRow: number): Promise<ProjectUnit> {
+    const { data } = await api.post(`/projects/${projectId}/units`, { name, category, modelsPerRow })
     return data
   },
 
@@ -18,6 +18,10 @@ export const armyApi = {
 
   async updateUnitCategory(unitId: string, category: UnitCategory): Promise<void> {
     await api.put(`/units/${unitId}/category`, { category })
+  },
+
+  async updateUnitFormation(unitId: string, modelsPerRow: number): Promise<void> {
+    await api.put(`/units/${unitId}/formation`, { modelsPerRow })
   },
 
   async completeUnit(unitId: string): Promise<ProjectUnit> {
@@ -57,6 +61,11 @@ export const armyApi = {
     return data
   },
 
+  async updatePaintingPlan(planId: string, estimatedHours: number): Promise<PaintingPlan> {
+    const { data } = await api.put(`/painting-plans/${planId}`, { estimatedHours })
+    return data
+  },
+
   async sessions(planId: string): Promise<PaintingSession[]> {
     const { data } = await api.get(`/painting-plans/${planId}/sessions`)
     return data.sessions
@@ -64,6 +73,11 @@ export const armyApi = {
 
   async recordSession(planId: string, durationSeconds: number): Promise<PaintingSession> {
     const { data } = await api.post(`/painting-plans/${planId}/sessions`, { durationSeconds })
+    return data
+  },
+
+  async updateSession(sessionId: string, durationSeconds: number): Promise<PaintingSession> {
+    const { data } = await api.put(`/painting-sessions/${sessionId}`, { durationSeconds })
     return data
   },
 }

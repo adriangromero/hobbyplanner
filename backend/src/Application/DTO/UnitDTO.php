@@ -15,6 +15,7 @@ final class UnitDTO
         private string $name,
         private string $category,
         private int $position,
+        private int $modelsPerRow,
         private array $components,
         private ?array $paintingPlan,
     ) {}
@@ -27,6 +28,7 @@ final class UnitDTO
             $unit->name(),
             $unit->category()->value,
             $unit->position(),
+            $unit->modelsPerRow(),
             array_map(static fn(UnitComponent $component): array => UnitComponentDTO::fromEntity($component)->toArray(), $components),
             $paintingPlan,
         );
@@ -34,6 +36,6 @@ final class UnitDTO
 
     public function toArray(): array
     {
-        return ['id' => $this->id, 'projectId' => $this->projectId, 'name' => $this->name, 'category' => $this->category, 'position' => $this->position, 'components' => $this->components, 'paintingPlan' => $this->paintingPlan];
+        return ['id' => $this->id, 'projectId' => $this->projectId, 'name' => $this->name, 'category' => $this->category, 'position' => $this->position, 'modelsPerRow' => $this->modelsPerRow, 'components' => $this->components, 'paintingPlan' => $this->paintingPlan];
     }
 }

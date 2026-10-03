@@ -5,8 +5,7 @@
         <h2 id="army-inventory-heading" class="text-xl font-semibold">Inventario del ejército</h2>
         <p class="mt-1 text-gray-600">Unidades, composición y progreso de pintado.</p>
       </div>
-      <div class="flex flex-wrap gap-2">
-        <button type="button" class="rounded-lg border border-gray-300 bg-white px-4 py-2 font-medium text-gray-800 hover:bg-gray-50" @click="unitsModalOpen = true">Ver unidades ({{ totalUnits }})</button>
+      <div class="flex flex-wrap items-center gap-2">
         <button v-if="!showUnitForm" type="button" class="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700" @click="showUnitForm = true">Añadir unidad</button>
       </div>
     </header>
@@ -20,7 +19,7 @@
 
     <form v-if="showUnitForm" class="mb-5 rounded-xl border bg-white p-4" @submit.prevent="createUnit">
       <h3 class="mb-3 font-semibold">Añadir unidad</h3>
-      <div class="grid gap-3 sm:grid-cols-[minmax(12rem,1fr)_minmax(12rem,0.7fr)_auto_auto] sm:items-end">
+      <div class="grid gap-3 sm:grid-cols-[minmax(12rem,1fr)_minmax(12rem,0.7fr)_minmax(8rem,0.45fr)_auto_auto] sm:items-end">
         <div>
           <label for="unit-name" class="mb-1 block text-sm font-medium text-gray-700">Nombre</label>
           <input id="unit-name" v-model="unitName" required maxlength="255" class="w-full rounded-lg border px-3 py-2" placeholder="Ej. Guardia del bosque" />
@@ -30,6 +29,10 @@
           <select id="unit-category" v-model="unitCategory" class="w-full rounded-lg border bg-white px-3 py-2">
             <option v-for="category in UNIT_CATEGORIES" :key="category.value" :value="category.value">{{ category.label }}</option>
           </select>
+        </div>
+        <div>
+          <label for="unit-models-per-row" class="mb-1 block text-sm font-medium text-gray-700">Miniaturas por fila</label>
+          <input id="unit-models-per-row" v-model.number="modelsPerRow" type="number" min="1" max="12" step="1" required class="w-full rounded-lg border px-3 py-2" />
         </div>
         <button type="submit" :disabled="savingUnit" class="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50">{{ savingUnit ? 'Guardando…' : 'Añadir' }}</button>
         <button type="button" class="rounded-lg border px-4 py-2" @click="cancelUnit">Cancelar</button>
@@ -44,33 +47,26 @@
       <button type="button" class="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700" @click="showUnitForm = true">Añadir primera unidad</button>
     </div>
 
-    <Teleport to="body">
-      <div v-if="unitsModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="army-units-modal-heading" tabindex="-1" @click.self="unitsModalOpen = false" @keydown.esc.stop="unitsModalOpen = false">
-        <section class="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-gray-50 shadow-2xl">
-          <header class="flex flex-wrap items-start justify-between gap-3 border-b bg-white p-4 sm:p-5">
-            <div>
-              <h2 id="army-units-modal-heading" class="text-xl font-semibold">Unidades del ejército</h2>
-              <p class="mt-1 text-sm text-gray-600">Arrastra el asa para ordenar, o usa las flechas. El cambio se guarda automáticamente.</p>
-            </div>
-            <button type="button" class="rounded-lg border px-3 py-2 text-sm hover:bg-gray-100" @click="unitsModalOpen = false">Cerrar</button>
-          </header>
-          <div class="space-y-4 overflow-y-auto p-4 sm:p-5">
-            <p v-if="reorderError" class="rounded-lg bg-red-50 p-3 text-sm text-red-800" role="alert">{{ reorderError }}</p>
-            <div v-if="units.length" class="space-y-3">
-              <div v-for="(unit, index) in units" :key="unit.id" class="rounded-xl transition" :class="dropTargetId === unit.id && draggedUnitId !== unit.id ? 'ring-2 ring-blue-500 ring-offset-2' : ''" @dragover.prevent="dropTargetId = unit.id" @dragleave="clearDropTarget(unit.id)" @drop.prevent="dropBefore(unit.id)">
-                <div class="mb-1 flex items-center justify-end gap-1">
-                  <button type="button" draggable="true" class="cursor-grab rounded-md border bg-white px-2 py-1 text-sm text-gray-700 active:cursor-grabbing disabled:opacity-50" :disabled="reordering" :aria-label="'Arrastrar ' + unit.name + ' para cambiar su posición'" title="Arrastra para reordenar" @dragstart="startDragging($event, unit.id)" @dragend="finishDragging">⠿ <span class="hidden sm:inline">Mover</span></button>
-                  <button type="button" class="rounded-md border bg-white px-2 py-1 text-sm hover:bg-gray-100 disabled:opacity-40" :disabled="index === 0 || reordering" :aria-label="'Mover ' + unit.name + ' arriba'" @click="moveUnit(index, -1)">↑</button>
-                  <button type="button" class="rounded-md border bg-white px-2 py-1 text-sm hover:bg-gray-100 disabled:opacity-40" :disabled="index === units.length - 1 || reordering" :aria-label="'Mover ' + unit.name + ' abajo'" @click="moveUnit(index, 1)">↓</button>
-                </div>
-                <ArmyUnitCard :unit="unit" />
-              </div>
-            </div>
-            <div v-else class="rounded-xl border border-dashed bg-white p-8 text-center text-gray-600">Todavía no hay unidades en este ejército.</div>
+    <section v-if="units.length" class="mt-6 space-y-3" aria-labelledby="army-units-heading">
+      <header class="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h3 id="army-units-heading" class="text-lg font-semibold">Unidades del ejército</h3>
+          <p class="text-sm text-gray-600">Abre cada tarjeta para ver la composición, ajustar la formación y gestionar las sesiones.</p>
+        </div>
+        <p class="text-xs text-gray-500">Usa el asa o las flechas para reordenar.</p>
+      </header>
+      <p v-if="reorderError" class="rounded-lg bg-red-50 p-3 text-sm text-red-800" role="alert">{{ reorderError }}</p>
+      <div class="space-y-3">
+        <div v-for="(unit, index) in units" :key="unit.id" class="rounded-xl transition" :class="dropTargetId === unit.id && draggedUnitId !== unit.id ? 'ring-2 ring-blue-500 ring-offset-2' : ''" @dragover.prevent="dropTargetId = unit.id" @dragleave="clearDropTarget(unit.id)" @drop.prevent="dropBefore(unit.id)">
+          <div class="mb-1 flex items-center justify-end gap-1">
+            <button type="button" draggable="true" class="cursor-grab rounded-md border bg-white px-2 py-1 text-sm text-gray-700 active:cursor-grabbing disabled:opacity-50" :disabled="reordering" :aria-label="'Arrastrar ' + unit.name + ' para cambiar su posición'" title="Arrastra para reordenar" @dragstart="startDragging($event, unit.id)" @dragend="finishDragging">⠿ <span class="hidden sm:inline">Mover</span></button>
+            <button type="button" class="rounded-md border bg-white px-2 py-1 text-sm hover:bg-gray-100 disabled:opacity-40" :disabled="index === 0 || reordering" :aria-label="'Mover ' + unit.name + ' arriba'" @click="moveUnit(index, -1)">↑</button>
+            <button type="button" class="rounded-md border bg-white px-2 py-1 text-sm hover:bg-gray-100 disabled:opacity-40" :disabled="index === units.length - 1 || reordering" :aria-label="'Mover ' + unit.name + ' abajo'" @click="moveUnit(index, 1)">↓</button>
           </div>
-        </section>
+          <ArmyUnitCard :unit="unit" />
+        </div>
       </div>
-    </Teleport>
+    </section>
   </section>
 </template>
 
@@ -88,9 +84,9 @@ const totalMiniatures = computed(() => units.value.reduce((sum, unit) => sum + u
 const paintedMiniatures = computed(() => units.value.reduce((sum, unit) => sum + unit.components.reduce((unitSum, component) => unitSum + component.quantityPainted, 0), 0))
 const totalSessions = computed(() => units.value.reduce((sum, unit) => sum + (unit.paintingPlan?.sessionCount ?? 0), 0))
 const showUnitForm = ref(false)
-const unitsModalOpen = ref(false)
 const unitName = ref('')
 const unitCategory = ref<UnitCategory>('infantry')
+const modelsPerRow = ref(5)
 const savingUnit = ref(false)
 const formError = ref('')
 const reorderError = ref('')
@@ -102,16 +98,21 @@ function cancelUnit() {
   showUnitForm.value = false
   unitName.value = ''
   unitCategory.value = 'infantry'
+  modelsPerRow.value = 5
   formError.value = ''
 }
 
 async function createUnit() {
   const name = unitName.value.trim()
   if (!name) return
+  if (!Number.isInteger(modelsPerRow.value) || modelsPerRow.value < 1 || modelsPerRow.value > 12) {
+    formError.value = 'Indica entre 1 y 12 miniaturas por fila.'
+    return
+  }
   savingUnit.value = true
   formError.value = ''
   try {
-    await store.createUnit(props.projectId, name, unitCategory.value)
+    await store.createUnit(props.projectId, name, unitCategory.value, modelsPerRow.value)
     cancelUnit()
   } catch (e: any) {
     formError.value = e.response?.data?.error ?? 'No se pudo añadir la unidad.'

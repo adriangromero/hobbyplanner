@@ -79,8 +79,8 @@ export const useProjectStore = defineStore('project', {
       }
     },
 
-    async createUnit(projectId: string, name: string, category: UnitCategory): Promise<ProjectUnit> {
-      const unit = await armyApi.createUnit(projectId, name, category)
+    async createUnit(projectId: string, name: string, category: UnitCategory, modelsPerRow: number): Promise<ProjectUnit> {
+      const unit = await armyApi.createUnit(projectId, name, category, modelsPerRow)
       this.units.push(unit)
       this.units.sort((a, b) => a.position - b.position || a.name.localeCompare(b.name))
       return unit
@@ -106,6 +106,12 @@ export const useProjectStore = defineStore('project', {
       await armyApi.updateUnitCategory(unitId, category)
       const unit = this.findUnit(unitId)
       if (unit) unit.category = category
+    },
+
+    async updateUnitFormation(unitId: string, modelsPerRow: number) {
+      await armyApi.updateUnitFormation(unitId, modelsPerRow)
+      const unit = this.findUnit(unitId)
+      if (unit) unit.modelsPerRow = modelsPerRow
     },
 
     async completeUnit(unitId: string) {
@@ -161,6 +167,11 @@ export const useProjectStore = defineStore('project', {
       return plan
     },
 
+    async updatePaintingPlanEstimate(planId: string, estimatedHours: number): Promise<void> {
+      await armyApi.updatePaintingPlan(planId, estimatedHours)
+      await this.refreshPaintingEstimates()
+    },
+
     async loadPaintingSessions(planId: string) {
       this.sessionsByPlan[planId] = await armyApi.sessions(planId)
     },
@@ -168,6 +179,16 @@ export const useProjectStore = defineStore('project', {
     async recordPaintingSession(planId: string, durationSeconds: number): Promise<PaintingSession> {
       const session = await armyApi.recordSession(planId, durationSeconds)
       this.applyPaintingSession(session)
+      await this.refreshPaintingEstimates()
+      return session
+    },
+
+    async updatePaintingSession(sessionId: string, durationSeconds: number): Promise<PaintingSession> {
+      const session = await armyApi.updateSession(sessionId, durationSeconds)
+      const sessions = this.sessionsByPlan[session.paintingPlanId] ?? []
+      const index = sessions.findIndex((candidate) => candidate.id === session.id)
+      if (index >= 0) sessions[index] = session
+      else this.sessionsByPlan[session.paintingPlanId] = [...sessions, session]
       await this.refreshPaintingEstimates()
       return session
     },

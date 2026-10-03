@@ -62,7 +62,6 @@
                   <p class="truncate text-sm font-semibold text-gray-900">{{ userName }}</p>
                   <p class="truncate text-xs text-gray-500">{{ userEmail }}</p>
                 </div>
-                <router-link to="/armies" role="menuitem" class="block px-4 py-2.5 text-sm text-gray-700 transition hover:bg-gray-50" @click="closeMenu">Ejércitos</router-link>
                 <button
                   type="button"
                   role="menuitem"

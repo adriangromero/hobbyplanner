@@ -19,7 +19,8 @@
           <span class="block">
             Estimación de esta unidad: {{ formatHours(unit.paintingPlan.estimatedHours) }} estimadas ·
             {{ formatHours(unit.paintingPlan.workedHours) }} trabajadas ·
-            {{ formatHours(unit.paintingPlan.remainingHours) }} restantes
+            {{ formatHours(unit.paintingPlan.remainingHours) }} restantes ·
+            {{ unit.paintingPlan.sessionCount }} {{ unit.paintingPlan.sessionCount === 1 ? 'sesión' : 'sesiones' }}
           </span>
           <span v-if="unit.paintingPlan.estimation?.estimatedCompletionDate && unit.paintingPlan.remainingHours > 0" class="block">
             Finalización estimada: {{ formatEstimatedDate(unit.paintingPlan.estimation.estimatedCompletionDate) }}
@@ -46,12 +47,16 @@
         <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
           <div>
             <h2 :id="`components-heading-${unit.id}`" class="font-semibold text-gray-900">Composición</h2>
-            <p class="text-sm text-gray-600">Despliegue en filas de cinco. Las casillas guardan el recuento pintado, no la identidad de cada miniatura.</p>
+            <p class="text-sm text-gray-600">Formación de {{ unit.modelsPerRow }} miniaturas por fila. Las casillas guardan el recuento pintado.</p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <label class="sr-only" :for="`category-${unit.id}`">Categoría de {{ unit.name }}</label>
             <select :id="`category-${unit.id}`" :value="unit.category" class="rounded-lg border bg-white px-2 py-1.5 text-sm" @change="changeCategory">
               <option v-for="category in UNIT_CATEGORIES" :key="category.value" :value="category.value">{{ category.label }}</option>
+            </select>
+            <label class="sr-only" :for="`formation-${unit.id}`">Miniaturas por fila de {{ unit.name }}</label>
+            <select :id="`formation-${unit.id}`" :value="unit.modelsPerRow" class="rounded-lg border bg-white px-2 py-1.5 text-sm" :disabled="savingFormation" @change="changeFormation">
+              <option v-for="width in 12" :key="width" :value="width">{{ width }} por fila</option>
             </select>
             <span v-if="isComplete" class="rounded-lg bg-green-100 px-3 py-2 text-sm font-medium text-green-800">Unidad pintada</span>
             <button v-else-if="totalCount > 0" type="button" class="rounded-lg border border-green-300 bg-green-50 px-3 py-2 text-sm font-medium text-green-900 hover:bg-green-100 disabled:opacity-50" :disabled="completingUnit" @click="confirmComplete = !confirmComplete">Completar unidad</button>
@@ -114,11 +119,11 @@
                 </div>
               </div>
 
-              <div v-if="component.quantityTotal <= CHECKBOX_LIMIT" class="mt-3 rounded-xl border border-emerald-900/15 bg-emerald-50/70 p-3 shadow-inner sm:p-4" role="group" :aria-label="`Despliegue de ${component.label}, ${component.quantityTotal} casillas`">
+              <div v-if="component.quantityTotal <= CHECKBOX_LIMIT" class="mt-3 overflow-x-auto rounded-xl border border-emerald-900/15 bg-emerald-50/70 p-3 shadow-inner sm:p-4" role="group" :aria-label="`Despliegue de ${component.label}, ${component.quantityTotal} casillas en filas de ${unit.modelsPerRow}`">
                 <div class="space-y-2">
                   <div v-for="(row, rowIndex) in formationRows(component.quantityTotal)" :key="rowIndex" class="space-y-1">
                     <span class="block text-[0.65rem] font-semibold uppercase tracking-wide text-emerald-950/60">Fila {{ String(rowIndex + 1).padStart(2, '0') }}</span>
-                    <div class="grid w-fit grid-cols-5 gap-1 sm:gap-2">
+                    <div class="grid w-fit gap-1 sm:gap-2" :style="{ gridTemplateColumns: `repeat(${unit.modelsPerRow}, minmax(2.75rem, 2.75rem))` }">
                       <label
                         v-for="index in row"
                         :key="index"
@@ -163,7 +168,7 @@
               </div>
 
               <div v-if="component.quantityPainted < component.quantityTotal" class="mt-3">
-                <button type="button" class="text-sm font-medium text-blue-700 hover:underline disabled:text-gray-500 disabled:no-underline" :disabled="!unit.paintingPlan || savingComponentId === component.id" :title="unit.paintingPlan ? 'Añadir una miniatura pintada y registrar el tiempo empleado' : 'Crea un plan de pintado para registrar el tiempo'" @click="openManualPaint(component)">Pintar una miniatura y anotar tiempo</button>
+                <button type="button" class="text-sm font-medium text-blue-700 hover:underline disabled:text-gray-500 disabled:no-underline" :disabled="!unit.paintingPlan || timer.isRunning || savingComponentId === component.id" :title="timer.isRunning ? 'Finaliza la sesión activa antes de anotar tiempo manual' : unit.paintingPlan ? 'Añadir una miniatura pintada y registrar el tiempo empleado' : 'Crea un plan de pintado para registrar el tiempo'" @click="openManualPaint(component)">Pintar una miniatura y anotar tiempo</button>
                 <p v-if="!unit.paintingPlan" class="mt-1 text-xs text-gray-600">Necesita un plan de pintado para sumar esas horas a la estimación.</p>
                 <form v-if="manualPaintComponentId === component.id" class="mt-3 grid gap-3 rounded-lg border bg-white p-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end" @submit.prevent="recordManualPainting(component)">
                   <div>
@@ -174,7 +179,7 @@
                     <label :for="`manual-minutes-${component.id}`" class="mb-1 block text-sm font-medium text-gray-700">Minutos</label>
                     <input :id="`manual-minutes-${component.id}`" v-model.number="manualMinutes" type="number" min="0" max="59" step="1" class="w-full rounded-lg border px-3 py-2" />
                   </div>
-                  <button type="submit" class="rounded-lg bg-green-700 px-3 py-2 text-sm font-medium text-white hover:bg-green-800 disabled:opacity-50" :disabled="savingComponentId === component.id">{{ savingComponentId === component.id ? 'Guardando…' : 'Guardar y marcar pintada' }}</button>
+                  <button type="submit" class="rounded-lg bg-green-700 px-3 py-2 text-sm font-medium text-white hover:bg-green-800 disabled:opacity-50" :disabled="timer.isRunning || savingComponentId === component.id">{{ savingComponentId === component.id ? 'Guardando…' : 'Guardar y marcar pintada' }}</button>
                   <button type="button" class="rounded-lg border px-3 py-2 text-sm" @click="manualPaintComponentId = null">Cancelar</button>
                 </form>
               </div>
@@ -193,6 +198,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useProjectStore } from '@/stores/projectStore'
+import { useTimerStore } from '@/stores/timerStore'
 import PaintingPlanPanel from '@/components/armies/PaintingPlanPanel.vue'
 import { formatHours } from '@/utils/format'
 import { UNIT_CATEGORIES, type ProjectUnit, type UnitCategory, type UnitComponent } from '@/types/models'
@@ -200,11 +206,13 @@ import { UNIT_CATEGORIES, type ProjectUnit, type UnitCategory, type UnitComponen
 const props = defineProps<{ unit: ProjectUnit; initiallyExpanded?: boolean }>()
 const CHECKBOX_LIMIT = 40
 const store = useProjectStore()
+const timer = useTimerStore()
 const expanded = ref(props.initiallyExpanded ?? false)
 const showAddForm = ref(false)
 const newLabel = ref('')
 const newTotal = ref(1)
 const saving = ref(false)
+const savingFormation = ref(false)
 const error = ref('')
 const savingComponentId = ref<string | null>(null)
 const editingId = ref<string | null>(null)
@@ -259,6 +267,19 @@ async function changeCategory(event: Event) {
     await store.updateUnitCategory(props.unit.id, category)
   } catch (e: any) {
     error.value = e.response?.data?.error ?? 'No se pudo cambiar la categoría.'
+  }
+}
+
+async function changeFormation(event: Event) {
+  const modelsPerRow = Number((event.target as HTMLSelectElement).value)
+  savingFormation.value = true
+  error.value = ''
+  try {
+    await store.updateUnitFormation(props.unit.id, modelsPerRow)
+  } catch (e: any) {
+    error.value = e.response?.data?.error ?? 'No se pudo actualizar la formación.'
+  } finally {
+    savingFormation.value = false
   }
 }
 
@@ -362,9 +383,10 @@ function getPaintedSlots(component: UnitComponent): number[] {
 }
 
 function formationRows(quantity: number): number[][] {
-  return Array.from({ length: Math.ceil(quantity / 5) }, (_, rowIndex) => {
-    const first = rowIndex * 5 + 1
-    const last = Math.min(first + 4, quantity)
+  const width = props.unit.modelsPerRow || 5
+  return Array.from({ length: Math.ceil(quantity / width) }, (_, rowIndex) => {
+    const first = rowIndex * width + 1
+    const last = Math.min(first + width - 1, quantity)
     return Array.from({ length: last - first + 1 }, (_, slotIndex) => first + slotIndex)
   })
 }
