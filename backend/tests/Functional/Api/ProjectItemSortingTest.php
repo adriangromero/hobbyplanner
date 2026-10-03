@@ -47,7 +47,7 @@ final class ProjectItemSortingTest extends WebTestCase
             'projectId' => $projectId, 'name' => 'Small', 'estimatedHours' => 1.0,
         ]));
         $client->request('POST', '/api/items', [], [], $headers, json_encode([
-            'projectId' => $projectId, 'name' => 'Big', 'estimatedHours' => 20.0,
+            'projectId' => $projectId, 'name' => 'Big', 'estimatedHours' => 2.0,
         ]));
 
         foreach (['name', 'estimatedHours', 'status', 'createdAt'] as $sortBy) {
@@ -57,7 +57,7 @@ final class ProjectItemSortingTest extends WebTestCase
             }
         }
 
-        // estimatedHours ascending: Small (1h) before Big (20h)
+        // estimatedHours ascending: Small (1h) before Big (2h)
         $client->request('GET', "/api/projects/$projectId?sortBy=estimatedHours&direction=asc", [], [], $headers);
         $items = json_decode($client->getResponse()->getContent(), true)['items'];
         $this->assertSame('Small', $items[0]['name']);

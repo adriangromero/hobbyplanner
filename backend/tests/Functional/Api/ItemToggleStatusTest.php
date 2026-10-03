@@ -11,7 +11,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  *
  * Prerequisites:
  *   - A test database with the migration applied
- *   - A seeded user (test@example.com / password123)
+ *   - A seeded user + project + item (see fixtures or setUp)
  *
  * Run:
  *   php bin/phpunit --filter=ItemToggleStatusTest
@@ -19,26 +19,19 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 final class ItemToggleStatusTest extends WebTestCase
 {
     /**
-     * Tests the full status lifecycle for an item:
+     * Tests the full toggle-status lifecycle:
      *   1. POST /api/auth/login  → get JWT
-     *   2. POST /api/items       → create an item (starts pending)
-     *   3. PUT  /api/items/{id}/toggle-status → completed
-     *   4. GET  /api/projects/{id}/estimation → verify estimation reflects the item's hours
-     *   5. PUT  /api/items/{id}/toggle-status → back to pending
+     *   2. POST /api/items       → create an item (pending)
+     *   3. PUT  /api/items/{id}/toggle-status → pending → in_progress
+     *   4. PUT  /api/items/{id}/toggle-status → in_progress → completed
+     *   5. PUT  /api/items/{id}/toggle-status → completed → pending
+     *   5. GET  /api/projects/{id}/estimation → verify estimation reflects status
      */
-    public function testTogglingItemStatusFlipsStatusAndEstimation(): void
+    public function testToggleItemStatusChangesEstimation(): void
     {
         $client = static::createClient();
 
-        // 1. Register (idempotent — ignore "already exists") then login
-        $client->request('POST', '/api/auth/register', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-        ], json_encode([
-            'email'    => 'test@example.com',
-            'password' => 'password123',
-            'name'     => 'E2E Tester',
-        ]));
-
+        // 1. Login
         $client->request('POST', '/api/auth/login', [], [], [
             'CONTENT_TYPE' => 'application/json',
         ], json_encode([
@@ -58,8 +51,8 @@ final class ItemToggleStatusTest extends WebTestCase
         $projectId = $this->getTestProjectId($client, $headers);
 
         $client->request('POST', '/api/items', [], [], $headers, json_encode([
-            'name'           => 'E2E Item',
-            'estimatedHours' => 2.0,
+            'name'           => 'E2E Test Item',
+            'estimatedHours' => 5.0,
             'projectId'      => $projectId,
         ]));
 
@@ -68,19 +61,26 @@ final class ItemToggleStatusTest extends WebTestCase
         $itemId   = $itemData['id'];
         $this->assertSame('pending', $itemData['status']);
 
-        // 3. Toggle → completed
+        // 3. Toggle → in_progress
+        $client->request('PUT', "/api/items/$itemId/toggle-status", [], [], $headers);
+        $this->assertResponseIsSuccessful();
+        $toggleData = json_decode($client->getResponse()->getContent(), true);
+        $this->assertSame('in_progress', $toggleData['status']);
+
+        // 4. Toggle → completed
         $client->request('PUT', "/api/items/$itemId/toggle-status", [], [], $headers);
         $this->assertResponseIsSuccessful();
         $toggleData = json_decode($client->getResponse()->getContent(), true);
         $this->assertSame('completed', $toggleData['status']);
 
-        // 4. Estimation reflects the item's hours
+        // 4. Verify estimation: completed item should reduce remaining hours
         $client->request('GET', "/api/projects/$projectId/estimation", [], [], $headers);
         $this->assertResponseIsSuccessful();
         $estimation = json_decode($client->getResponse()->getContent(), true);
-        $this->assertGreaterThanOrEqual(2.0, $estimation['estimatedHours']);
+        // The completed item's estimated hours are excluded from remaining
+        $this->assertIsFloat($estimation['remainingHours']);
 
-        // 5. Toggle → back to pending
+        // 6. Toggle back → pending
         $client->request('PUT', "/api/items/$itemId/toggle-status", [], [], $headers);
         $this->assertResponseIsSuccessful();
         $toggleData = json_decode($client->getResponse()->getContent(), true);

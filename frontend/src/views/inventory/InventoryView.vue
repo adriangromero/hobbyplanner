@@ -24,10 +24,10 @@
       <table class="w-full bg-white rounded-lg shadow-sm border">
         <thead class="bg-gray-100 text-left">
           <tr>
-            <th class="p-3 w-16 text-center">Progreso</th>
+            <th class="p-3 w-10"></th>
             <th class="p-3">Nombre</th>
             <th class="p-3">Proyecto</th>
-            <th class="p-3">Total</th>
+            <th class="p-3">Estimadas</th>
             <th class="p-3">Trabajadas</th>
             <th class="p-3">Creado</th>
             <th class="p-3">Estado</th>
@@ -41,39 +41,37 @@
             :class="{ 'opacity-50 bg-green-50': item.status === 'completed' }"
           >
             <td class="p-3">
-              <div class="flex flex-col items-center gap-1">
-                <div class="flex items-center gap-2">
-                  <template v-if="confirmingId === item.id">
-                    <span class="text-xs font-medium" :class="item.status === 'completed' ? 'text-gray-600' : 'text-green-700'">
-                      {{ item.status === 'completed' ? '¿Reactivar?' : '¿Completar?' }}
-                    </span>
-                    <button
-                      @click="toggleStatus(item)"
-                      :disabled="togglingId === item.id"
-                      class="text-xs bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded transition disabled:opacity-50"
-                    >
-                      Sí
-                    </button>
-                    <button
-                      @click="confirmingId = null"
-                      class="text-xs text-gray-500 hover:text-gray-700 transition"
-                    >
-                      No
-                    </button>
-                  </template>
+              <div class="flex items-center gap-2">
+                <template v-if="confirmingId === item.id">
+                  <span class="text-xs font-medium" :class="item.status === 'completed' ? 'text-gray-600' : 'text-green-700'">
+                    {{ item.status === 'completed' ? '¿Reactivar?' : '¿Completar?' }}
+                  </span>
                   <button
-                    v-else
-                    @click="confirmingId = item.id"
+                    @click="toggleStatus(item)"
                     :disabled="togglingId === item.id"
-                    class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors disabled:opacity-50"
-                    :class="item.status === 'completed'
-                      ? 'bg-green-500 border-green-500 text-white'
-                      : 'border-gray-300 hover:border-green-400'"
-                    :title="item.status === 'completed' ? 'Marcar como pendiente' : 'Marcar como completado'"
+                    class="text-xs bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded transition disabled:opacity-50"
                   >
-                    <span v-if="item.status === 'completed'" class="text-xs">&#10003;</span>
+                    Sí
                   </button>
-                </div>
+                  <button
+                    @click="confirmingId = null"
+                    class="text-xs text-gray-500 hover:text-gray-700 transition"
+                  >
+                    No
+                  </button>
+                </template>
+                <button
+                  v-else
+                  @click="confirmingId = item.id"
+                  :disabled="togglingId === item.id"
+                  class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors disabled:opacity-50"
+                  :class="item.status === 'completed'
+                    ? 'bg-green-500 border-green-500 text-white'
+                    : 'border-gray-300 hover:border-green-400'"
+                  :title="item.status === 'completed' ? 'Marcar como pendiente' : 'Marcar como completado'"
+                >
+                  <span v-if="item.status === 'completed'" class="text-xs">&#10003;</span>
+                </button>
               </div>
             </td>
             <td class="p-3">
@@ -89,7 +87,7 @@
                 {{ item.projectName }}
               </router-link>
             </td>
-            <td class="p-3 text-sm">{{ formatHours(item.estimatedHours) }}</td>
+            <td class="p-3 text-sm">{{ item.estimatedHours }}h</td>
             <td class="p-3 text-sm text-gray-600">{{ formatHours(item.totalHours) }}</td>
             <td class="p-3 text-sm text-gray-400">{{ formatDate(item.createdAt) }}</td>
             <td class="p-3">
@@ -134,9 +132,10 @@ onMounted(() => store.loadInventory())
 const filters = computed(() => {
   const items = store.inventory
   return [
-    { label: 'Todos',       value: 'all',       count: items.length },
-    { label: 'Pendientes',  value: 'pending',   count: items.filter(i => i.status === 'pending').length },
-    { label: 'Completados', value: 'completed', count: items.filter(i => i.status === 'completed').length },
+    { label: 'Todos',       value: 'all',         count: items.length },
+    { label: 'Pendientes',  value: 'pending',     count: items.filter(i => i.status === 'pending').length },
+    { label: 'En progreso', value: 'in_progress', count: items.filter(i => i.status === 'in_progress').length },
+    { label: 'Completados', value: 'completed',   count: items.filter(i => i.status === 'completed').length },
   ]
 })
 
@@ -146,11 +145,19 @@ const filteredItems = computed(() => {
 })
 
 function statusLabel(status: string): string {
-  return status === 'completed' ? 'Completado' : 'Pendiente'
+  switch (status) {
+    case 'completed':   return 'Completado'
+    case 'in_progress': return 'En progreso'
+    default:            return 'Pendiente'
+  }
 }
 
 function statusBadge(status: string): string {
-  return status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+  switch (status) {
+    case 'completed':   return 'bg-green-100 text-green-700'
+    case 'in_progress': return 'bg-blue-100 text-blue-700'
+    default:            return 'bg-gray-100 text-gray-600'
+  }
 }
 
 async function toggleStatus(item: InventoryItem) {

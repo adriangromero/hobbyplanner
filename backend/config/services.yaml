@@ -38,6 +38,21 @@ services:
     App\Domain\Repository\ProjectRepositoryInterface:
         class: App\Infrastructure\Persistence\Doctrine\Repository\DoctrineProjectRepository
 
+    App\Domain\Repository\ArmyRepositoryInterface:
+        class: App\Infrastructure\Persistence\Doctrine\Repository\DoctrineArmyRepository
+
+    App\Domain\Repository\UnitRepositoryInterface:
+        class: App\Infrastructure\Persistence\Doctrine\Repository\DoctrineUnitRepository
+
+    App\Domain\Repository\UnitComponentRepositoryInterface:
+        class: App\Infrastructure\Persistence\Doctrine\Repository\DoctrineUnitComponentRepository
+
+    App\Domain\Repository\PaintingPlanRepositoryInterface:
+        class: App\Infrastructure\Persistence\Doctrine\Repository\DoctrinePaintingPlanRepository
+
+    App\Domain\Repository\PaintingSessionRepositoryInterface:
+        class: App\Infrastructure\Persistence\Doctrine\Repository\DoctrinePaintingSessionRepository
+
     # Controllers
     App\Infrastructure\Controller\:
         resource: '../src/Infrastructure/Controller/'

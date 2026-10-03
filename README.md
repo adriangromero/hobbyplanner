@@ -50,7 +50,7 @@ backend/src/
 - **IDs tipados**: `ProjectId`, `ItemId`, `UserId`, `WorkSessionId` — heredan de `AbstractId` (UUID v4 con `create()`, `fromString()`, `equals()`)
 - **Email**: constructor privado, factory `fromString()`, validado con `filter_var`, inmutable
 - **ProjectEstimation**: constructor privado, factory `create()` con validacion de rangos, inmutable
-- **Enums como Value Objects**: `ItemStatus` (pending, completed) y `ProjectStatus` (active, completed) — PHP 8.2 backed enums, almacenados como strings en BD, sin tabla auxiliar
+- **Enums como Value Objects**: `ItemStatus` (pending, in_progress, completed) y `ProjectStatus` (active, completed) — PHP 8.2 backed enums, almacenados como strings en BD, sin tabla auxiliar
 
 ### Cascade de borrado en dominio (transaccional, no en BD)
 
@@ -100,7 +100,7 @@ erDiagram
         uuid user_id FK
         string name
         float estimated_hours
-        string status "pending | completed"
+        string status "pending | in_progress | completed"
         datetime created_at
         datetime updated_at
     }
@@ -339,7 +339,7 @@ frontend/src/
 
 ### Items y estimacion
 - CRUD de items con horas estimadas
-- Estado de item: pendiente / completado (toggle con confirmacion)
+- Estado de item: pendiente / en progreso / completado (toggle con confirmacion)
 - Confirmacion inline antes de completar ("¿Completar? Si / No")
 - Items completados: opacidad reducida, texto tachado, timer deshabilitado
 - **Ordenacion por columna** (Nombre, Horas estimadas, Estado): click en la cabecera ordena asc/desc contra la BD (Doctrine `QueryBuilder`, whitelist via enum `ItemSortField` — no se puede inyectar una columna arbitraria)
@@ -359,7 +359,7 @@ frontend/src/
 
 ### Inventario
 - Vista global de todos los items del usuario en todos los proyectos
-- Filtros: Todos, Pendientes, Completados
+- Filtros: Todos, Pendientes, En progreso, Completados
 - Toggle de estado con confirmacion
 - Link a cada proyecto
 

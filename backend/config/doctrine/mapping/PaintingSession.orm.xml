@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping https://doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+    <entity name="App\Domain\Entity\PaintingSession" table="painting_sessions">
+        <id name="id" type="painting_session_id" column="id" length="36"><generator strategy="NONE"/></id>
+        <field name="paintingPlanId" type="painting_plan_id" column="painting_plan_id" length="36"/>
+        <field name="userId" type="user_id" column="user_id" length="36"/>
+        <field name="durationSeconds" type="integer" column="duration_seconds"/>
+        <field name="workedAt" type="datetime_immutable" column="worked_at"/>
+        <indexes>
+            <index name="idx_painting_sessions_plan_id" columns="painting_plan_id"/>
+            <index name="idx_painting_sessions_user_id" columns="user_id"/>
+        </indexes>
+    </entity>
+</doctrine-mapping>

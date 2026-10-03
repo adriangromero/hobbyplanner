@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping https://doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+    <entity name="App\Domain\Entity\PaintingPlan" table="painting_plans">
+        <id name="id" type="painting_plan_id" column="id" length="36"><generator strategy="NONE"/></id>
+        <field name="unitId" type="unit_id" column="unit_id" length="36"/>
+        <field name="userId" type="user_id" column="user_id" length="36"/>
+        <field name="estimatedHours" type="float" column="estimated_hours"/>
+        <field name="createdAt" type="datetime_immutable" column="created_at"/>
+        <field name="updatedAt" type="datetime_immutable" column="updated_at"/>
+        <unique-constraints><unique-constraint name="uniq_painting_plans_unit_id" columns="unit_id"/></unique-constraints>
+        <indexes>
+            <index name="idx_painting_plans_user_id" columns="user_id"/>
+        </indexes>
+    </entity>
+</doctrine-mapping>

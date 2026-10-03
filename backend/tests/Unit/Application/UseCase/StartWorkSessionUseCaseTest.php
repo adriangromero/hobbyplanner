@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Application\UseCase;
 
 use App\Application\Port\CurrentUserProvider;
+use App\Application\Port\TransactionPort;
 use App\Application\Security\OwnershipGuard;
 use App\Application\UseCase\WorkSession\StartWorkSession\StartWorkSessionRequest;
 use App\Application\UseCase\WorkSession\StartWorkSession\StartWorkSessionUseCase;
@@ -40,12 +41,15 @@ final class StartWorkSessionUseCaseTest extends TestCase
         $this->itemRepository      = $this->createMock(ItemRepositoryInterface::class);
         $this->projectRepository   = $this->createMock(ProjectRepositoryInterface::class);
         $this->currentUserProvider = $this->createMock(CurrentUserProvider::class);
+        $transaction = $this->createMock(TransactionPort::class);
+        $transaction->method('transactional')->willReturnCallback(fn(callable $operation) => $operation());
 
         $this->useCase = new StartWorkSessionUseCase(
             $this->sessionRepository,
             $this->itemRepository,
             $this->projectRepository,
             new OwnershipGuard($this->currentUserProvider),
+            $transaction,
         );
 
         $this->projectId = ProjectId::create();
@@ -64,6 +68,7 @@ final class StartWorkSessionUseCaseTest extends TestCase
         $this->projectRepository->method('findById')->willReturn($project);
 
         $this->sessionRepository->expects($this->once())->method('save');
+        $this->itemRepository->expects($this->once())->method('save');
 
         $response = $this->useCase->execute(new StartWorkSessionRequest(
             $item->id()->value(),
@@ -72,6 +77,27 @@ final class StartWorkSessionUseCaseTest extends TestCase
         ));
 
         $this->assertNotNull($response->session());
+        $this->assertSame('in_progress', $item->status()->value);
+    }
+
+    public function testCannotStartSessionWhenItemBelongsToAnotherProject(): void
+    {
+        $this->currentUserProvider->method('currentUserId')->willReturn($this->userId);
+        $this->sessionRepository->method('findActiveByUser')->willReturn(null);
+
+        $otherProjectId = ProjectId::create();
+        $item = Item::create($otherProjectId, $this->userId, 'Item', 5.0);
+        $this->itemRepository->method('findById')->willReturn($item);
+        $this->projectRepository->expects($this->never())->method('findById');
+        $this->sessionRepository->expects($this->never())->method('save');
+
+        $this->expectException(\App\Domain\Exception\ValidationException::class);
+
+        $this->useCase->execute(new StartWorkSessionRequest(
+            $item->id()->value(),
+            $this->projectId->value(),
+            $this->userId->value(),
+        ));
     }
 
     public function testActiveSessionExistsThrows(): void

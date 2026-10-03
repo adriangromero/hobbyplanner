@@ -7,8 +7,13 @@ doctrine:
             user_id: App\Infrastructure\Persistence\Doctrine\Type\UserIdType
             email: App\Infrastructure\Persistence\Doctrine\Type\EmailType
             project_id: App\Infrastructure\Persistence\Doctrine\Type\ProjectIdType
-            project_status: App\Infrastructure\Persistence\Doctrine\Type\ProjectStatusType
             item_status: App\Infrastructure\Persistence\Doctrine\Type\ItemStatusType
+            project_status: App\Infrastructure\Persistence\Doctrine\Type\ProjectStatusType
+            army_id: App\Infrastructure\Persistence\Doctrine\Type\ArmyIdType
+            unit_id: App\Infrastructure\Persistence\Doctrine\Type\UnitIdType
+            unit_component_id: App\Infrastructure\Persistence\Doctrine\Type\UnitComponentIdType
+            painting_plan_id: App\Infrastructure\Persistence\Doctrine\Type\PaintingPlanIdType
+            painting_session_id: App\Infrastructure\Persistence\Doctrine\Type\PaintingSessionIdType
         profiling_collect_backtrace: '%kernel.debug%'
         use_savepoints: true
 

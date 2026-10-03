@@ -47,18 +47,16 @@
 
     <!-- Horas estimadas -->
     <td class="p-3">
-      <div v-if="editingItem" class="flex items-center gap-1.5">
+      <div v-if="editingItem">
         <input
           v-model="editForm.estimatedHours"
           type="number"
           min="0.5"
           step="0.5"
-          class="border rounded px-2 py-1 text-sm w-16 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          class="border rounded px-2 py-1 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
       </div>
-      <span v-else class="text-gray-600">
-        {{ item.estimatedHours }}h
-      </span>
+      <span v-else class="text-gray-600">{{ item.estimatedHours }}h</span>
     </td>
 
     <!-- Sesiones — con botón para abrir modal -->
@@ -243,31 +241,30 @@ const editForm      = ref({ name: '', estimatedHours: '' })
 const showSessionsModal = ref(false)
 
 const isActive = computed(() =>
-  timer.isRunning && timer.activeItemId === props.item.id
+  timer.isRunning && timer.activeTargetType === 'work-session' && timer.activeItemId === props.item.id
 )
 
 const anotherSessionActive = computed(() =>
-  timer.isRunning && timer.activeItemId !== props.item.id
+  timer.isRunning && !isActive.value
 )
 
 const isCompleted = computed(() => props.item.status === 'completed')
 
 
-// ── Estado ──────────────────────────────────────────────
+// ── Status ──────────────────────────────────────────────
 
 async function handleToggleStatus() {
   await run('Actualizando estado...', async () => {
     try {
       const data = await itemApi.toggleStatus(props.item.id)
-      projectStore.updateItemStatus(props.item.id, data.status)
-
+      projectStore.toggleItemStatus(props.item.id, data.status)
       toast.success(
         data.status === 'completed'
           ? `"${props.item.name}" completado`
           : `"${props.item.name}" reactivado`
       )
     } catch {
-      toast.error('Error al actualizar el estado')
+      toast.error('Error al cambiar el estado')
     }
   })
 }
@@ -363,15 +360,15 @@ async function handleStop() {
   confirmingStop.value = false
 
   await run('Finalizando sesión...', async () => {
-    const session = await timer.stop()
+    const result = await timer.stop()
 
-    if (!session) {
+    if (!result || result.kind !== 'work-session') {
       toast.error('Error al guardar la sesión')
       return
     }
 
-    projectStore.addSessionToItem(props.item.id, session)
-    toast.success(`Sesión finalizada — ${formatHours(session.durationHours)}`)
+    projectStore.addSessionToItem(props.item.id, result.session)
+    toast.success(`Sesión finalizada — ${formatHours(result.session.durationHours)}`)
   })
 }
 </script>

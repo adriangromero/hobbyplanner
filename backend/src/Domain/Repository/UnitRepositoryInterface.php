@@ -1,0 +1,17 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domain\Repository;
+
+use App\Domain\Entity\Unit;
+use App\Domain\ValueObject\ArmyId;
+use App\Domain\ValueObject\UnitId;
+
+interface UnitRepositoryInterface
+{
+    public function save(Unit $unit): void;
+    public function findById(UnitId $id): ?Unit;
+    /** @return Unit[] */
+    public function findByArmy(ArmyId $armyId): array;
+}

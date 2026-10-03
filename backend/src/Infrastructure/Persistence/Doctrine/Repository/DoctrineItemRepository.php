@@ -47,12 +47,12 @@ final class DoctrineItemRepository extends ServiceEntityRepository implements It
         $field = $sortBy ?? ItemSortField::CREATED_AT;
         $dir   = strtoupper($direction->value);
 
-        $qb = $this->createQueryBuilder('i')
+        return $this->createQueryBuilder('i')
             ->where('i.projectId = :projectId')
             ->setParameter('projectId', $projectId->value())
-            ->orderBy('i.' . $field->value, $dir);
-
-        return $qb->getQuery()->getResult();
+            ->orderBy('i.' . $field->value, $dir)
+            ->getQuery()
+            ->getResult();
     }
 
     public function findByUser(UserId $userId): array

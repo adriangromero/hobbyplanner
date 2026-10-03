@@ -8,7 +8,6 @@ use App\Application\DTO\ItemDTO;
 use App\Application\Security\OwnershipGuard;
 use App\Domain\Exception\ItemNotFoundException;
 use App\Domain\Repository\ItemRepositoryInterface;
-use App\Domain\ValueObject\ItemStatus;
 
 final class ToggleItemStatusUseCase
 {
@@ -27,11 +26,7 @@ final class ToggleItemStatusUseCase
 
         $this->ownershipGuard->ensureOwnership($item);
 
-        if ($item->status() === ItemStatus::COMPLETED) {
-            $item->markAsPending();
-        } else {
-            $item->markAsCompleted();
-        }
+        $item->advanceStatus();
 
         $this->itemRepository->save($item);
 

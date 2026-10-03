@@ -14,7 +14,7 @@ export type Item = {
   id:             string
   name:           string
   estimatedHours: number
-  status:         'pending' | 'completed'
+  status:         'pending' | 'in_progress' | 'completed'
   createdAt:      string
   totalSessions:  number
   totalHours:     number
@@ -45,4 +45,43 @@ export type Estimation = {
 export type InventoryItem = Item & {
   projectId:   string
   projectName: string
+}
+
+export type Army = {
+  id: string
+  name: string
+  createdAt: string
+}
+
+export type PaintingPlan = {
+  id: string
+  unitId: string
+  estimatedHours: number
+  workedHours: number
+  remainingHours: number
+}
+
+export type UnitComponent = {
+  id: string
+  unitId: string
+  label: string
+  quantityTotal: number
+  quantityPainted: number
+  remainingQuantity: number
+}
+
+export type ArmyUnit = {
+  id: string
+  armyId: string
+  name: string
+  components: UnitComponent[]
+  paintingPlan: PaintingPlan | null
+}
+
+export type PaintingSession = {
+  id: string
+  paintingPlanId: string
+  durationSeconds: number
+  durationHours: number
+  workedAt: string
 }

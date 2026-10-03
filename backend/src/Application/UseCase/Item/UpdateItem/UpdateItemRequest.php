@@ -9,8 +9,8 @@ use App\Domain\ValueObject\ItemId;
 final class UpdateItemRequest
 {
     public function __construct(
-        private readonly string $itemId,
-        private readonly string $name,
+        private readonly string  $itemId,
+        private readonly string  $name,
         private readonly float  $estimatedHours,
     ) {}
 

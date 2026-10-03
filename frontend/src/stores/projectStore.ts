@@ -144,20 +144,21 @@ export const useProjectStore = defineStore('project', {
       this.projects = this.projects.filter((p: Project) => p.id !== projectId)
     },
 
-    updateItem(updated: { id: string; name: string; estimatedHours: number }) {
+    updateItem(updated: { id: string; name: string; estimatedHours: number; status?: string }) {
       const item = this.items.find(i => i.id === updated.id)
       if (!item) return
 
       item.name           = updated.name
       item.estimatedHours = updated.estimatedHours
+      if (updated.status) item.status = updated.status as Item['status']
       this.refreshEstimation()
     },
 
-    updateItemStatus(itemId: string, status: string) {
+    toggleItemStatus(itemId: string, newStatus: string) {
       const item = this.items.find(i => i.id === itemId)
       if (!item) return
 
-      item.status = status as Item['status']
+      item.status = newStatus as Item['status']
       this.refreshEstimation()
     },
 

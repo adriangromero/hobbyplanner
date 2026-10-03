@@ -96,7 +96,9 @@ watch(est, (newVal, oldVal) => {
 
 const progressPercent = computed(() => {
   if (!est.value || est.value.estimatedHours === 0) return 0
-  return (est.value.workedHours / est.value.estimatedHours) * 100
+  return Math.min(100, Math.max(0,
+    ((est.value.estimatedHours - est.value.remainingHours) / est.value.estimatedHours) * 100
+  ))
 })
 
 const weeksRemaining = computed(() => {
