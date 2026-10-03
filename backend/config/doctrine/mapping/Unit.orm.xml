@@ -7,6 +7,8 @@
         <field name="projectId" type="project_id" column="project_id" length="36"/>
         <field name="userId" type="user_id" column="user_id" length="36"/>
         <field name="name" type="string" column="name" length="255"/>
+        <field name="category" type="string" column="category" length="20"/>
+        <field name="position" type="integer" column="sort_order"/>
         <field name="createdAt" type="datetime_immutable" column="created_at"/>
         <field name="updatedAt" type="datetime_immutable" column="updated_at"/>
         <indexes><index name="idx_units_project_id" columns="project_id"/><index name="idx_units_user_id" columns="user_id"/></indexes>

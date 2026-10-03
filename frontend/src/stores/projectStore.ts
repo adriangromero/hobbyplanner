@@ -3,7 +3,7 @@ import { useTimerStore } from '@/stores/timerStore'
 import { projectApi } from '@/api/projectApi'
 import { inventoryApi } from '@/api/inventoryApi'
 import { armyApi } from '@/api/armyApi'
-import type { Project, ProjectUnit, PaintingPlan, PaintingSession, UnitComponent, Item, Estimation, InventoryItem, Session } from '@/types/models'
+import type { Project, ProjectUnit, PaintingPlan, PaintingSession, UnitCategory, UnitComponent, Item, Estimation, InventoryItem, Session } from '@/types/models'
 
 export type { Project, Item, InventoryItem }
 
@@ -79,11 +79,39 @@ export const useProjectStore = defineStore('project', {
       }
     },
 
-    async createUnit(projectId: string, name: string): Promise<ProjectUnit> {
-      const unit = await armyApi.createUnit(projectId, name)
+    async createUnit(projectId: string, name: string, category: UnitCategory): Promise<ProjectUnit> {
+      const unit = await armyApi.createUnit(projectId, name, category)
       this.units.push(unit)
-      this.units.sort((a, b) => a.name.localeCompare(b.name))
+      this.units.sort((a, b) => a.position - b.position || a.name.localeCompare(b.name))
       return unit
+    },
+
+    async reorderUnits(projectId: string, orderedIds: string[]) {
+      const previousUnits = [...this.units]
+      const byId = new Map(this.units.map((unit) => [unit.id, unit]))
+      this.units = orderedIds.map((id, position) => {
+        const unit = byId.get(id)
+        if (!unit) throw new Error('No se pudo ordenar una unidad que no está cargada')
+        return { ...unit, position }
+      })
+      try {
+        await armyApi.reorderUnits(projectId, orderedIds)
+      } catch (error) {
+        this.units = previousUnits
+        throw error
+      }
+    },
+
+    async updateUnitCategory(unitId: string, category: UnitCategory) {
+      await armyApi.updateUnitCategory(unitId, category)
+      const unit = this.findUnit(unitId)
+      if (unit) unit.category = category
+    },
+
+    async completeUnit(unitId: string) {
+      const completed = await armyApi.completeUnit(unitId)
+      const unit = this.findUnit(unitId)
+      if (unit) unit.components = completed.components
     },
 
     async addComponent(unitId: string, label: string, quantityTotal: number): Promise<UnitComponent> {
@@ -142,6 +170,14 @@ export const useProjectStore = defineStore('project', {
       this.applyPaintingSession(session)
       await this.refreshPaintingEstimates()
       return session
+    },
+
+    async recordMiniaturePainted(componentId: string, durationSeconds: number): Promise<PaintingSession> {
+      const result = await armyApi.paintMiniatureWithDuration(componentId, durationSeconds)
+      this.replaceComponent(result.component)
+      this.applyPaintingSession(result.session)
+      await this.refreshPaintingEstimates()
+      return result.session
     },
 
     applyPaintingSession(session: PaintingSession) {

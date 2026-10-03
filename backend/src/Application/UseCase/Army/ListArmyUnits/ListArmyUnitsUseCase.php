@@ -59,6 +59,7 @@ final class ListArmyUnitsUseCase
                     $plan,
                     $workedHours,
                     ProjectEstimationDTO::fromValueObject($unitEstimation),
+                    count($planSessions),
                 )->toArray();
             }
             return UnitDTO::fromEntity($unit, $this->components->findByUnit($unit->id()), $planData);

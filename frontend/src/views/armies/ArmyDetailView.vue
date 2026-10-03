@@ -22,6 +22,12 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
+          <router-link
+            :to="{ name: 'ArmyEstimation', params: { id: project.id } }"
+            class="rounded-lg border border-blue-200 bg-blue-50 px-3.5 py-2 text-sm font-medium text-blue-800 hover:bg-blue-100"
+          >
+            Estimación del ejército
+          </router-link>
           <button
             v-if="project.type === 'army'"
             type="button"
@@ -30,15 +36,15 @@
             aria-controls="army-options"
             class="text-sm font-medium px-3.5 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
-            ⚙ Opciones del ejército
+            Opciones del ejército
           </button>
           <button
             @click="handleToggleProjectStatus"
             :disabled="togglingStatus"
             class="text-sm font-medium px-4 py-2 rounded-lg transition disabled:opacity-50 shrink-0"
             :class="project.status === 'completed'
-              ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              : 'bg-green-600 text-white hover:bg-green-700'"
+              ? 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-100'
+              : 'bg-green-700 text-white hover:bg-green-800'"
           >
             {{ project.status === 'completed' ? 'Reactivar ejército' : 'Completar ejército' }}
           </button>

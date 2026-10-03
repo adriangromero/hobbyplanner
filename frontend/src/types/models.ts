@@ -45,6 +45,17 @@ export type Estimation = {
   estimatedCompletionDate: string | null
 }
 
+export const UNIT_CATEGORIES = [
+  { value: 'character', label: 'Personaje' },
+  { value: 'hero', label: 'Héroe' },
+  { value: 'infantry', label: 'Infantería' },
+  { value: 'special', label: 'Especial' },
+  { value: 'singular', label: 'Singular' },
+  { value: 'war_machine', label: 'Máquina de guerra' },
+] as const
+
+export type UnitCategory = typeof UNIT_CATEGORIES[number]['value']
+
 export type InventoryItem = Item & {
   projectId:   string
   projectName: string
@@ -56,6 +67,7 @@ export type PaintingPlan = {
   estimatedHours: number
   workedHours: number
   remainingHours: number
+  sessionCount: number
   estimation?: Estimation | null
 }
 
@@ -72,6 +84,8 @@ export type ProjectUnit = {
   id: string
   projectId: string
   name: string
+  category: UnitCategory
+  position: number
   components: UnitComponent[]
   paintingPlan: PaintingPlan | null
 }

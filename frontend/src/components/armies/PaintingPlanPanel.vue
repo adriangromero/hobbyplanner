@@ -5,8 +5,8 @@
         <h2 :id="`painting-plan-heading-${unit.id}`" class="font-semibold text-gray-900">Plan de pintado</h2>
         <p class="text-sm text-gray-600 mt-0.5">Estimación y sesiones para la unidad completa</p>
       </div>
-      <button v-if="unit.paintingPlan && !showSessions" type="button" class="text-sm text-blue-700 hover:underline" @click="toggleSessions">
-        Ver sesiones ({{ sessions.length }})
+      <button v-if="unit.paintingPlan" type="button" class="text-sm text-blue-700 hover:underline" @click="toggleSessions">
+        {{ showSessions ? 'Ocultar sesiones' : 'Ver sesiones' }} ({{ unit.paintingPlan.sessionCount }})
       </button>
     </div>
 
@@ -19,10 +19,11 @@
     </form>
 
     <div v-else class="mt-3 rounded-lg bg-gray-50 border p-4">
-      <div class="grid gap-3 sm:grid-cols-3">
+      <div class="grid gap-3 sm:grid-cols-4">
         <div><p class="text-xs uppercase tracking-wide text-gray-500">Estimación</p><p class="font-semibold text-gray-900">{{ formatHours(unit.paintingPlan.estimatedHours) }}</p></div>
         <div><p class="text-xs uppercase tracking-wide text-gray-500">Trabajadas</p><p class="font-semibold text-gray-900">{{ formatHours(unit.paintingPlan.workedHours) }}</p></div>
         <div><p class="text-xs uppercase tracking-wide text-gray-500">Restantes</p><p class="font-semibold text-gray-900">{{ formatHours(unit.paintingPlan.remainingHours) }}</p></div>
+        <div><p class="text-xs uppercase tracking-wide text-gray-500">Sesiones</p><p class="font-semibold text-gray-900">{{ unit.paintingPlan.sessionCount }}</p></div>
       </div>
       <div class="mt-3 h-2 rounded-full bg-gray-200 overflow-hidden" role="progressbar" :aria-valuenow="progressPercent" aria-valuemin="0" aria-valuemax="100" :aria-label="`Tiempo estimado trabajado: ${progressPercent}%`">
         <div class="h-full bg-green-600 transition-all" :style="{ width: `${progressPercent}%` }" />

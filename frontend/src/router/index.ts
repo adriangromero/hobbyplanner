@@ -27,6 +27,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/armies/:id/estimation',
+      name: 'ArmyEstimation',
+      component: () => import('@/views/armies/ArmyEstimationView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/projects',
       redirect: '/armies'
     },

@@ -34,7 +34,7 @@
     </div>
 
     <!-- Métricas de ritmo -->
-    <div v-if="est.activeDays > 0" class="grid grid-cols-2 gap-3">
+    <div v-if="est.activeDays > 0" class="grid grid-cols-2 gap-3 sm:grid-cols-3">
       <div class="bg-gray-50 rounded-lg p-3">
         <p class="text-xs text-gray-500">Ritmo diario</p>
         <p class="text-lg font-bold text-gray-800">
@@ -53,6 +53,11 @@
       <div class="bg-gray-50 rounded-lg p-3">
         <p class="text-xs text-gray-500">Días trabajados</p>
         <p class="text-lg font-bold text-gray-800">{{ est.activeDays }}</p>
+      </div>
+
+      <div class="bg-gray-50 rounded-lg p-3">
+        <p class="text-xs text-gray-500">Sesiones registradas</p>
+        <p class="text-lg font-bold text-gray-800">{{ sessionCount }}</p>
       </div>
 
       <div class="bg-gray-50 rounded-lg p-3">
@@ -90,6 +95,7 @@ import { formatHours } from '@/utils/format'
 
 const store = useProjectStore()
 const est   = computed(() => store.estimation)
+const sessionCount = computed(() => store.units.reduce((sum, unit) => sum + (unit.paintingPlan?.sessionCount ?? 0), 0))
 
 const highlighting    = ref(false)
 let   highlightTimer: ReturnType<typeof setTimeout> | undefined

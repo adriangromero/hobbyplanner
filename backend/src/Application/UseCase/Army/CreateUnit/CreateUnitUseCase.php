@@ -11,6 +11,7 @@ use App\Domain\Exception\ProjectNotFoundException;
 use App\Domain\Exception\ValidationException;
 use App\Domain\Repository\ProjectRepositoryInterface;
 use App\Domain\Repository\UnitRepositoryInterface;
+use App\Domain\ValueObject\UnitCategory;
 use App\Domain\ValueObject\ProjectType;
 
 final class CreateUnitUseCase
@@ -23,7 +24,14 @@ final class CreateUnitUseCase
         if ($project->type() !== ProjectType::ARMY) {
             throw new ValidationException('Solo los proyectos de tipo ejército pueden contener unidades');
         }
-        $unit = Unit::create($project->id(), $request->userId(), $request->name());
+        $existingUnits = $this->units->findByProject($project->id());
+        $unit = Unit::create(
+            $project->id(),
+            $request->userId(),
+            $request->name(),
+            UnitCategory::fromValue($request->category()),
+            count($existingUnits),
+        );
         $this->units->save($unit);
         return UnitDTO::fromEntity($unit);
     }

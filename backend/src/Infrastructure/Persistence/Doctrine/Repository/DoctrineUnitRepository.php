@@ -23,7 +23,14 @@ final class DoctrineUnitRepository extends ServiceEntityRepository implements Un
     }
     public function findByProject(ProjectId $projectId): array
     {
-        return $this->createQueryBuilder('u')->where('u.projectId = :projectId')->setParameter('projectId', $projectId->value())->orderBy('u.name', 'ASC')->getQuery()->getResult();
+        return $this->createQueryBuilder('u')
+            ->where('u.projectId = :projectId')
+            ->setParameter('projectId', $projectId->value())
+            ->orderBy('u.position', 'ASC')
+            ->addOrderBy('u.createdAt', 'ASC')
+            ->addOrderBy('u.name', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 
     public function inventorySummaryByProjects(array $projectIds): array

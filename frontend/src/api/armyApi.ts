@@ -1,5 +1,5 @@
 import api from '@/api/axios'
-import type { ProjectUnit, PaintingPlan, PaintingSession, UnitComponent } from '@/types/models'
+import type { ProjectUnit, PaintingPlan, PaintingSession, UnitCategory, UnitComponent } from '@/types/models'
 
 export const armyApi = {
   async units(projectId: string): Promise<ProjectUnit[]> {
@@ -7,8 +7,21 @@ export const armyApi = {
     return data.units
   },
 
-  async createUnit(projectId: string, name: string): Promise<ProjectUnit> {
-    const { data } = await api.post(`/projects/${projectId}/units`, { name })
+  async createUnit(projectId: string, name: string, category: UnitCategory): Promise<ProjectUnit> {
+    const { data } = await api.post(`/projects/${projectId}/units`, { name, category })
+    return data
+  },
+
+  async reorderUnits(projectId: string, unitIds: string[]): Promise<void> {
+    await api.put(`/projects/${projectId}/units/order`, { unitIds })
+  },
+
+  async updateUnitCategory(unitId: string, category: UnitCategory): Promise<void> {
+    await api.put(`/units/${unitId}/category`, { category })
+  },
+
+  async completeUnit(unitId: string): Promise<ProjectUnit> {
+    const { data } = await api.post(`/units/${unitId}/complete`)
     return data
   },
 
@@ -27,6 +40,11 @@ export const armyApi = {
 
   async adjustPaintedQuantity(componentId: string, delta: number): Promise<UnitComponent> {
     const { data } = await api.put(`/unit-components/${componentId}/progress`, { delta })
+    return data
+  },
+
+  async paintMiniatureWithDuration(componentId: string, durationSeconds: number): Promise<{ component: UnitComponent; session: PaintingSession }> {
+    const { data } = await api.post(`/unit-components/${componentId}/paint`, { durationSeconds })
     return data
   },
 

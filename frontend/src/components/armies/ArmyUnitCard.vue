@@ -7,7 +7,11 @@
       @click="expanded = !expanded"
     >
       <span class="min-w-0">
-        <span class="block text-lg font-semibold text-gray-900 truncate">{{ unit.name }}</span>
+        <span class="flex flex-wrap items-center gap-2">
+          <span class="text-lg font-semibold text-gray-900 truncate">{{ unit.name }}</span>
+          <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">{{ categoryLabel(unit.category) }}</span>
+          <span v-if="isComplete" class="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">Pintada</span>
+        </span>
         <span class="block text-sm text-gray-600 mt-0.5">
           {{ componentCountLabel }} · {{ paintedTotal }}/{{ totalCount }} pintados
         </span>
@@ -44,7 +48,23 @@
             <h2 :id="`components-heading-${unit.id}`" class="font-semibold text-gray-900">Composición</h2>
             <p class="text-sm text-gray-600">Despliegue en filas de cinco. Las casillas guardan el recuento pintado, no la identidad de cada miniatura.</p>
           </div>
-          <button v-if="!showAddForm" type="button" class="text-sm font-medium text-blue-700 hover:underline" @click="showAddForm = true">Añadir componente</button>
+          <div class="flex flex-wrap items-center gap-2">
+            <label class="sr-only" :for="`category-${unit.id}`">Categoría de {{ unit.name }}</label>
+            <select :id="`category-${unit.id}`" :value="unit.category" class="rounded-lg border bg-white px-2 py-1.5 text-sm" @change="changeCategory">
+              <option v-for="category in UNIT_CATEGORIES" :key="category.value" :value="category.value">{{ category.label }}</option>
+            </select>
+            <span v-if="isComplete" class="rounded-lg bg-green-100 px-3 py-2 text-sm font-medium text-green-800">Unidad pintada</span>
+            <button v-else-if="totalCount > 0" type="button" class="rounded-lg border border-green-300 bg-green-50 px-3 py-2 text-sm font-medium text-green-900 hover:bg-green-100 disabled:opacity-50" :disabled="completingUnit" @click="confirmComplete = !confirmComplete">Completar unidad</button>
+            <button v-if="!showAddForm" type="button" class="text-sm font-medium text-blue-700 hover:underline" @click="showAddForm = true">Añadir componente</button>
+          </div>
+        </div>
+
+        <div v-if="confirmComplete" class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm">
+          <p>Se marcarán las {{ totalCount - paintedTotal }} miniaturas que faltan como pintadas. No se añadirá tiempo ni sesiones.</p>
+          <div class="flex gap-2">
+            <button type="button" class="rounded-md bg-green-700 px-3 py-1.5 font-medium text-white hover:bg-green-800 disabled:opacity-50" :disabled="completingUnit" @click="completeUnit">{{ completingUnit ? 'Guardando…' : 'Confirmar' }}</button>
+            <button type="button" class="rounded-md border px-3 py-1.5" @click="confirmComplete = false">Cancelar</button>
+          </div>
         </div>
 
         <form v-if="showAddForm" class="bg-gray-50 border rounded-lg p-3 mb-4" @submit.prevent="addComponent">
@@ -141,6 +161,23 @@
                 <button type="button" class="w-9 h-9 border rounded-lg text-lg disabled:opacity-40" :disabled="component.quantityPainted === component.quantityTotal || savingComponentId === component.id" :aria-label="`Añadir una miniatura pintada de ${component.label}`" @click="setPainted(component, component.quantityPainted + 1)">+</button>
                 <span class="text-sm text-gray-600">de {{ component.quantityTotal }}</span>
               </div>
+
+              <div v-if="component.quantityPainted < component.quantityTotal" class="mt-3">
+                <button type="button" class="text-sm font-medium text-blue-700 hover:underline disabled:text-gray-500 disabled:no-underline" :disabled="!unit.paintingPlan || savingComponentId === component.id" :title="unit.paintingPlan ? 'Añadir una miniatura pintada y registrar el tiempo empleado' : 'Crea un plan de pintado para registrar el tiempo'" @click="openManualPaint(component)">Pintar una miniatura y anotar tiempo</button>
+                <p v-if="!unit.paintingPlan" class="mt-1 text-xs text-gray-600">Necesita un plan de pintado para sumar esas horas a la estimación.</p>
+                <form v-if="manualPaintComponentId === component.id" class="mt-3 grid gap-3 rounded-lg border bg-white p-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end" @submit.prevent="recordManualPainting(component)">
+                  <div>
+                    <label :for="`manual-hours-${component.id}`" class="mb-1 block text-sm font-medium text-gray-700">Horas</label>
+                    <input :id="`manual-hours-${component.id}`" v-model.number="manualHours" type="number" min="0" max="999" step="1" class="w-full rounded-lg border px-3 py-2" />
+                  </div>
+                  <div>
+                    <label :for="`manual-minutes-${component.id}`" class="mb-1 block text-sm font-medium text-gray-700">Minutos</label>
+                    <input :id="`manual-minutes-${component.id}`" v-model.number="manualMinutes" type="number" min="0" max="59" step="1" class="w-full rounded-lg border px-3 py-2" />
+                  </div>
+                  <button type="submit" class="rounded-lg bg-green-700 px-3 py-2 text-sm font-medium text-white hover:bg-green-800 disabled:opacity-50" :disabled="savingComponentId === component.id">{{ savingComponentId === component.id ? 'Guardando…' : 'Guardar y marcar pintada' }}</button>
+                  <button type="button" class="rounded-lg border px-3 py-2 text-sm" @click="manualPaintComponentId = null">Cancelar</button>
+                </form>
+              </div>
             </template>
           </section>
         </div>
@@ -158,7 +195,7 @@ import { computed, ref } from 'vue'
 import { useProjectStore } from '@/stores/projectStore'
 import PaintingPlanPanel from '@/components/armies/PaintingPlanPanel.vue'
 import { formatHours } from '@/utils/format'
-import type { ProjectUnit, UnitComponent } from '@/types/models'
+import { UNIT_CATEGORIES, type ProjectUnit, type UnitCategory, type UnitComponent } from '@/types/models'
 
 const props = defineProps<{ unit: ProjectUnit; initiallyExpanded?: boolean }>()
 const CHECKBOX_LIMIT = 40
@@ -175,9 +212,15 @@ const editLabel = ref('')
 const editTotal = ref(1)
 const removingId = ref<string | null>(null)
 const paintedSlots = ref<Record<string, number[]>>({})
+const completingUnit = ref(false)
+const confirmComplete = ref(false)
+const manualPaintComponentId = ref<string | null>(null)
+const manualHours = ref(0)
+const manualMinutes = ref(30)
 
 const totalCount = computed(() => props.unit.components.reduce((sum, component) => sum + component.quantityTotal, 0))
 const paintedTotal = computed(() => props.unit.components.reduce((sum, component) => sum + component.quantityPainted, 0))
+const isComplete = computed(() => totalCount.value > 0 && paintedTotal.value === totalCount.value)
 const componentCountLabel = computed(() => `${props.unit.components.length} ${props.unit.components.length === 1 ? 'componente' : 'componentes'}`)
 
 async function addComponent() {
@@ -202,6 +245,72 @@ function startEdit(component: UnitComponent) {
   editLabel.value = component.label
   editTotal.value = component.quantityTotal
   error.value = ''
+}
+
+function categoryLabel(category: UnitCategory): string {
+  return UNIT_CATEGORIES.find((entry) => entry.value === category)?.label ?? category
+}
+
+async function changeCategory(event: Event) {
+  const category = (event.target as HTMLSelectElement).value as UnitCategory
+  if (!UNIT_CATEGORIES.some((entry) => entry.value === category)) return
+  error.value = ''
+  try {
+    await store.updateUnitCategory(props.unit.id, category)
+  } catch (e: any) {
+    error.value = e.response?.data?.error ?? 'No se pudo cambiar la categoría.'
+  }
+}
+
+async function completeUnit() {
+  if (completingUnit.value || isComplete.value) return
+  completingUnit.value = true
+  error.value = ''
+  try {
+    await store.completeUnit(props.unit.id)
+    paintedSlots.value = {}
+    confirmComplete.value = false
+  } catch (e: any) {
+    error.value = e.response?.data?.error ?? 'No se pudo completar la unidad.'
+  } finally {
+    completingUnit.value = false
+  }
+}
+
+function openManualPaint(component: UnitComponent) {
+  if (!props.unit.paintingPlan || component.quantityPainted >= component.quantityTotal) return
+  manualPaintComponentId.value = component.id
+  manualHours.value = 0
+  manualMinutes.value = 30
+  error.value = ''
+}
+
+async function recordManualPainting(component: UnitComponent) {
+  if (!props.unit.paintingPlan) {
+    error.value = 'Crea un plan de pintado para registrar el tiempo.'
+    return
+  }
+  if (!Number.isInteger(manualHours.value) || manualHours.value < 0 || manualHours.value > 999
+    || !Number.isInteger(manualMinutes.value) || manualMinutes.value < 0 || manualMinutes.value > 59) {
+    error.value = 'Indica horas entre 0 y 999 y minutos entre 0 y 59.'
+    return
+  }
+  const durationSeconds = manualHours.value * 3600 + manualMinutes.value * 60
+  if (durationSeconds <= 0) {
+    error.value = 'El tiempo debe ser de al menos un minuto.'
+    return
+  }
+  savingComponentId.value = component.id
+  error.value = ''
+  try {
+    await store.recordMiniaturePainted(component.id, durationSeconds)
+    delete paintedSlots.value[component.id]
+    manualPaintComponentId.value = null
+  } catch (e: any) {
+    error.value = e.response?.data?.error ?? 'No se pudo guardar el tiempo de pintado.'
+  } finally {
+    savingComponentId.value = null
+  }
 }
 
 async function saveEdit(component: UnitComponent) {

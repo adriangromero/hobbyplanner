@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Controller\Api;
 
+use App\Application\DTO\UnitDTO;
 use App\Application\UseCase\Army\AddUnitComponent\AddUnitComponentRequest;
 use App\Application\UseCase\Army\AddUnitComponent\AddUnitComponentUseCase;
 use App\Application\UseCase\Army\CreatePaintingPlan\CreatePaintingPlanRequest;
@@ -22,6 +23,15 @@ use App\Application\UseCase\Army\UpdateUnitComponentProgress\UpdateUnitComponent
 use App\Application\UseCase\Army\UpdateUnitComponentProgress\UpdateUnitComponentProgressUseCase;
 use App\Application\UseCase\Army\RemoveUnitComponent\RemoveUnitComponentRequest;
 use App\Application\UseCase\Army\RemoveUnitComponent\RemoveUnitComponentUseCase;
+use App\Application\UseCase\Army\CompleteUnit\CompleteUnitRequest;
+use App\Application\UseCase\Army\CompleteUnit\CompleteUnitUseCase;
+use App\Application\UseCase\Army\ReorderUnits\ReorderUnitsRequest;
+use App\Application\UseCase\Army\ReorderUnits\ReorderUnitsUseCase;
+use App\Application\UseCase\Army\RecordMiniaturePainting\RecordMiniaturePaintingRequest;
+use App\Application\UseCase\Army\RecordMiniaturePainting\RecordMiniaturePaintingUseCase;
+use App\Application\UseCase\Army\UpdateUnitCategory\UpdateUnitCategoryRequest;
+use App\Application\UseCase\Army\UpdateUnitCategory\UpdateUnitCategoryUseCase;
+use App\Domain\Exception\ValidationException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -41,8 +51,51 @@ final class ProjectUnitController extends ApiController
     public function createUnit(string $projectId, Request $request, CreateUnitUseCase $useCase): JsonResponse
     {
         $data = $this->jsonBody($request, ['name']);
-        $unit = $useCase->execute(new CreateUnitRequest($projectId, $this->currentUserId()->value(), (string) $data['name']));
+        $unit = $useCase->execute(new CreateUnitRequest(
+            $projectId,
+            $this->currentUserId()->value(),
+            (string) $data['name'],
+            (string) ($data['category'] ?? 'infantry'),
+        ));
         return new JsonResponse($unit->toArray(), Response::HTTP_CREATED);
+    }
+
+    #[Route('/projects/{projectId}/units/order', name: 'api_project_units_order', methods: ['PUT'])]
+    public function reorderUnits(string $projectId, Request $request, ReorderUnitsUseCase $useCase): JsonResponse
+    {
+        $data = $this->jsonBody($request, ['unitIds']);
+        if (!is_array($data['unitIds']) || !array_is_list($data['unitIds'])) {
+            throw new ValidationException('unitIds debe ser una lista de identificadores');
+        }
+        $units = $useCase->execute(new ReorderUnitsRequest($projectId, $data['unitIds']));
+        return new JsonResponse(['units' => array_map(static fn($unit) => UnitDTO::fromEntity($unit)->toArray(), $units)]);
+    }
+
+    #[Route('/units/{id}/category', name: 'api_unit_category_update', methods: ['PUT'])]
+    public function updateUnitCategory(string $id, Request $request, UpdateUnitCategoryUseCase $useCase): JsonResponse
+    {
+        $data = $this->jsonBody($request, ['category']);
+        $unit = $useCase->execute(new UpdateUnitCategoryRequest($id, (string) $data['category']));
+        return new JsonResponse($unit->toArray());
+    }
+
+    #[Route('/units/{id}/complete', name: 'api_unit_complete', methods: ['POST'])]
+    public function completeUnit(string $id, CompleteUnitUseCase $useCase): JsonResponse
+    {
+        $unit = $useCase->execute(new CompleteUnitRequest($id));
+        return new JsonResponse($unit->toArray());
+    }
+
+    #[Route('/unit-components/{id}/paint', name: 'api_miniature_paint_manual', methods: ['POST'])]
+    public function recordMiniaturePainting(string $id, Request $request, RecordMiniaturePaintingUseCase $useCase): JsonResponse
+    {
+        $data = $this->jsonBody($request, ['durationSeconds']);
+        $painting = $useCase->execute(new RecordMiniaturePaintingRequest(
+            $id,
+            $this->currentUserId()->value(),
+            (int) $data['durationSeconds'],
+        ));
+        return new JsonResponse($painting->toArray(), Response::HTTP_CREATED);
     }
 
     #[Route('/units/{unitId}/components', name: 'api_unit_components_create', methods: ['POST'])]
