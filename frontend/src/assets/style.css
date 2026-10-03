@@ -2,7 +2,147 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Opcional: estilos globales suaves */
+:root,
+:root[data-theme='cozy'] {
+  color-scheme: light;
+  --page-background: #f5f2eb;
+  --surface: #fffefa;
+  --surface-muted: #f0ece3;
+  --text-primary: #2d3730;
+  --text-secondary: #59645c;
+  --line: #ded8cd;
+  --accent: #805744;
+  --accent-hover: #684435;
+  --accent-soft: #eee2d9;
+  --font-ui: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-display: Georgia, 'Palatino Linotype', serif;
+  --decoration: none;
+  --decoration-opacity: 0.35;
+
+  /* Structural tokens shared by every skin. */
+  --text-body: 1rem;
+  --text-small: 0.875rem;
+  --text-title: 1.875rem;
+  --space-unit: 0.25rem;
+  --space-1: calc(var(--space-unit) * 1);
+  --space-2: calc(var(--space-unit) * 2);
+  --space-3: calc(var(--space-unit) * 3);
+  --space-4: calc(var(--space-unit) * 4);
+  --space-6: calc(var(--space-unit) * 6);
+  --space-8: calc(var(--space-unit) * 8);
+  --radius-control: 0.625rem;
+  --radius-card: 1rem;
+  --shadow-card: 0 1px 3px rgb(48 40 31 / 8%), 0 1px 2px rgb(48 40 31 / 5%);
+  --shadow-menu: 0 14px 32px rgb(48 40 31 / 14%);
+  --focus-color: #1d4ed8;
+}
+
+:root[data-theme='imperial'] {
+  --page-background: #eee6d5;
+  --surface: #fffaf0;
+  --surface-muted: #f3ead8;
+  --text-primary: #35291d;
+  --text-secondary: #62513b;
+  --line: #d7c6a7;
+  --accent: #75462f;
+  --accent-hover: #5d3525;
+  --accent-soft: #eadbc0;
+  --font-ui: Cambria, Georgia, 'Times New Roman', serif;
+  --font-display: 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  --decoration:
+    radial-gradient(ellipse at 9% 12%, rgb(151 111 44 / 8%), transparent 34%),
+    radial-gradient(ellipse at 93% 76%, rgb(108 59 39 / 6%), transparent 36%),
+    repeating-linear-gradient(135deg, rgb(110 82 44 / 2%) 0 1px, transparent 1px 8px);
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
 body {
-  @apply bg-gray-100 text-gray-900;
+  margin: 0;
+  background: var(--page-background);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+}
+
+.themed-app {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.themed-app::before {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  background-color: var(--page-background);
+  background-image: var(--decoration);
+  opacity: var(--decoration-opacity);
+}
+
+.themed-app h1,
+.themed-app h2,
+.themed-app h3 {
+  font-family: var(--font-display);
+  color: var(--text-primary);
+}
+
+.themed-app .bg-white { background-color: var(--surface); }
+.themed-app [class~='bg-white/95'] { background-color: color-mix(in srgb, var(--surface) 95%, transparent); }
+.themed-app .bg-gray-50 { background-color: var(--surface-muted); }
+.themed-app .bg-gray-100 { background-color: var(--page-background); }
+.themed-app .text-gray-900,
+.themed-app .text-gray-800,
+.themed-app .text-gray-700 { color: var(--text-primary); }
+.themed-app .text-gray-600,
+.themed-app .text-gray-500 { color: var(--text-secondary); }
+.themed-app .border-gray-100,
+.themed-app .border-gray-200,
+.themed-app .border { border-color: var(--line); }
+.themed-app .rounded-lg { border-radius: var(--radius-control); }
+.themed-app .rounded-xl { border-radius: var(--radius-card); }
+.themed-app .shadow-sm { box-shadow: var(--shadow-card); }
+.themed-app .shadow-lg,
+.themed-app .shadow-xl { box-shadow: var(--shadow-menu); }
+.themed-app .bg-blue-600,
+.themed-app .bg-blue-700,
+.themed-app .bg-green-700 { background-color: var(--accent); }
+.themed-app [class~='hover:bg-blue-700']:hover,
+.themed-app [class~='hover:bg-blue-800']:hover,
+.themed-app [class~='hover:bg-green-800']:hover { background-color: var(--accent-hover); }
+.themed-app .text-blue-600,
+.themed-app .text-blue-700 { color: var(--accent); }
+
+.app-mark {
+  background: linear-gradient(135deg, #697b68, #8a5d49);
+  font-family: var(--font-display);
+}
+
+html[data-theme='imperial'] .app-mark {
+  background: linear-gradient(135deg, #76542a, #733c2d);
+}
+
+.themed-app button:focus-visible,
+.themed-app a:focus-visible,
+.themed-app select:focus-visible,
+.themed-app input:focus-visible,
+.themed-app textarea:focus-visible {
+  outline-color: var(--focus-color);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

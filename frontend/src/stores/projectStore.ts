@@ -28,7 +28,7 @@ export const useProjectStore = defineStore('project', {
       try {
         this.projects = await projectApi.list()
       } catch (e: any) {
-        this.error = e.response?.data?.error ?? 'Error al cargar proyectos'
+        this.error = e.response?.data?.error ?? 'Error al cargar ejércitos'
       } finally {
         this.loading = false
       }
@@ -37,6 +37,14 @@ export const useProjectStore = defineStore('project', {
     async loadProject(id: string, sortBy?: string, direction?: 'asc' | 'desc') {
       this.loading = true
       this.error   = null
+
+      if (this.currentProject?.id !== id) {
+        this.currentProject = null
+        this.items = []
+        this.estimation = null
+        this.units = []
+        this.sessionsByPlan = {}
+      }
 
       try {
         const [detail, estimation] = await Promise.all([
@@ -52,7 +60,7 @@ export const useProjectStore = defineStore('project', {
 
         this.restoreTimer()
       } catch (e: any) {
-        this.error = e.response?.data?.error ?? 'Error al cargar proyecto'
+        this.error = e.response?.data?.error ?? 'Error al cargar ejército'
       } finally {
         this.loading = false
       }

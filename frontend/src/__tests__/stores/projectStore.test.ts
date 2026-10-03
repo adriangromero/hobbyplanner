@@ -9,7 +9,7 @@ describe('projectStore', () => {
 
   it('addItem pushes item to list', () => {
     const store = useProjectStore()
-    store.currentProject = { id: 'p1', name: 'Project', status: 'active', type: 'general', createdAt: '2026-01-01' }
+    store.currentProject = { id: 'p1', name: 'Project', status: 'active', type: 'general', createdAt: '2026-01-01', unitCount: 0, miniatureCount: 0 }
 
     const item = {
       id: 'i1',
@@ -89,7 +89,7 @@ describe('projectStore', () => {
 
   it('addProject pushes project to list', () => {
     const store = useProjectStore()
-    store.addProject({ id: 'p1', name: 'New Project', status: 'active', type: 'general', createdAt: '2026-01-01' })
+    store.addProject({ id: 'p1', name: 'New Project', status: 'active', type: 'general', createdAt: '2026-01-01', unitCount: 0, miniatureCount: 0 })
 
     expect(store.projects).toHaveLength(1)
   })
@@ -97,8 +97,8 @@ describe('projectStore', () => {
   it('removeProject filters project from list', () => {
     const store = useProjectStore()
     store.projects = [
-      { id: 'p1', name: 'A', status: 'active', type: 'general', createdAt: '2026-01-01' },
-      { id: 'p2', name: 'B', status: 'active', type: 'general', createdAt: '2026-01-02' },
+      { id: 'p1', name: 'A', status: 'active', type: 'general', createdAt: '2026-01-01', unitCount: 0, miniatureCount: 0 },
+      { id: 'p2', name: 'B', status: 'active', type: 'general', createdAt: '2026-01-02', unitCount: 0, miniatureCount: 0 },
     ]
 
     store.removeProject('p1')

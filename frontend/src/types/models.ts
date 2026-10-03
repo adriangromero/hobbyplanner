@@ -28,6 +28,8 @@ export type Project = {
   status:       'active' | 'completed'
   type:         'general' | 'army'
   createdAt:    string
+  unitCount:    number
+  miniatureCount: number
 }
 
 export type Estimation = {

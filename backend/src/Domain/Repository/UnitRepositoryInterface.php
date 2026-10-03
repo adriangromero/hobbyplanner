@@ -14,4 +14,9 @@ interface UnitRepositoryInterface
     public function findById(UnitId $id): ?Unit;
     /** @return Unit[] */
     public function findByProject(ProjectId $projectId): array;
+    /**
+     * @param ProjectId[] $projectIds
+     * @return array<string, array{unitCount: int, miniatureCount: int}>
+     */
+    public function inventorySummaryByProjects(array $projectIds): array;
 }

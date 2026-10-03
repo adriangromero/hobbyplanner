@@ -6,7 +6,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/projects'
+      redirect: '/armies'
     },
     {
       path: '/login',
@@ -15,25 +15,23 @@ const router = createRouter({
       meta: { requiresAuth: false }
     },
     {
+      path: '/armies',
+      name: 'ArmyList',
+      component: () => import('@/views/armies/ArmyListView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/armies/:id',
+      name: 'ArmyDetail',
+      component: () => import('@/views/armies/ArmyDetailView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/projects',
-      name: 'ProjectsList',
-      component: () => import('@/views/projects/ProjectsListView.vue'),
-      meta: { requiresAuth: true }
+      redirect: '/armies'
     },
-    {
-      path: '/projects/:id',
-      name: 'ProjectDetail',
-      component: () => import('@/views/projects/ProjectDetailView.vue'),
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/inventory',
-      name: 'Inventory',
-      component: () => import('@/views/inventory/InventoryView.vue'),
-      meta: { requiresAuth: true }
-    },
-    { path: '/armies', redirect: { name: 'ProjectsList', query: { type: 'army' } } },
-    { path: '/armies/:id', redirect: to => ({ name: 'ProjectDetail', params: { id: to.params.id } }) },
+    { path: '/projects/:id', redirect: to => ({ name: 'ArmyDetail', params: { id: to.params.id } }) },
+    { path: '/inventory', redirect: '/armies' },
   ]
 })
 
@@ -46,7 +44,7 @@ router.beforeEach((to) => {
   }
 
   if (to.name === 'Login' && auth.isAuthenticated) {
-    return { name: 'ProjectsList' }
+    return { name: 'ArmyList' }
   }
 })
 

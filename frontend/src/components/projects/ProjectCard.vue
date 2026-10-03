@@ -1,16 +1,15 @@
 <template>
-  <div
-    @click="handleCardClick"
-    class="p-4 bg-white rounded-lg shadow-sm border hover:shadow-md cursor-pointer transition"
+  <article
+    class="p-4 bg-white rounded-xl shadow-sm border hover:shadow-md transition"
     :class="{ 'border-green-200 bg-green-50/50': project.status === 'completed' }"
   >
 
     <!-- Vista normal -->
     <template v-if="!editingProject && !deletingProject">
-      <div class="flex justify-between items-start">
-        <div class="flex-1 min-w-0">
+      <div class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_160px_125px_auto] items-center gap-x-5 gap-y-3">
+        <button type="button" class="min-w-0 text-left rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" @click="handleCardClick">
           <div class="flex items-center gap-2">
-            <h2 class="text-xl font-semibold">{{ project.name }}</h2>
+            <h2 class="text-lg font-semibold truncate">{{ project.name }}</h2>
             <span v-if="project.type === 'army'" class="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">Ejército</span>
             <span
               v-if="project.status === 'completed'"
@@ -21,21 +20,39 @@
           </div>
           <p class="text-gray-600 text-sm">{{ project.description || 'Sin descripción' }}</p>
           <p class="text-gray-400 text-xs mt-1">{{ formatDate(project.createdAt) }}</p>
+        </button>
+
+        <div class="sm:border-l sm:pl-5" aria-label="Unidades y miniaturas">
+          <template v-if="project.type === 'army'">
+            <p class="font-semibold text-gray-900">{{ project.unitCount }} {{ project.unitCount === 1 ? 'unidad' : 'unidades' }}</p>
+            <p class="text-xs text-gray-500">{{ project.miniatureCount }} {{ project.miniatureCount === 1 ? 'miniatura' : 'miniaturas' }}</p>
+          </template>
+          <span v-else class="text-sm text-gray-400">—</span>
         </div>
-        <div class="flex items-center gap-2 ml-3 shrink-0" @click.stop>
+
+        <div class="sm:border-l sm:pl-5">
+          <span
+            class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full"
+            :class="project.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'"
+          >
+            {{ project.status === 'completed' ? 'Completado' : 'Activo' }}
+          </span>
+        </div>
+
+        <div class="col-span-2 sm:col-span-1 flex items-center gap-2 justify-end" @click.stop>
           <button
             @click="startEdit"
-            class="text-blue-400 hover:text-blue-600 transition-colors"
-            title="Editar proyecto"
+            class="text-sm text-blue-700 hover:text-blue-900 underline-offset-2 hover:underline transition-colors"
+            :aria-label="`Editar ejército ${project.name}`"
           >
-            ✏️
+            Editar
           </button>
           <button
             @click="deletingProject = true"
-            class="text-red-400 hover:text-red-600 transition-colors"
-            title="Eliminar proyecto"
+            class="text-sm text-red-700 hover:text-red-900 underline-offset-2 hover:underline transition-colors"
+            :aria-label="`Eliminar ejército ${project.name}`"
           >
-            🗑️
+            Eliminar
           </button>
         </div>
       </div>
@@ -105,7 +122,7 @@
 
     <BlockingOverlay :active="loading" :message="loadingMessage" :detail="project.name" />
 
-  </div>
+  </article>
 </template>
 
 <script setup lang="ts">
@@ -133,7 +150,7 @@ const editForm        = ref({ name: '', description: '' })
 
 function handleCardClick() {
   if (!editingProject.value && !deletingProject.value) {
-    router.push(`/projects/${props.project.id}`)
+    router.push(`/armies/${props.project.id}`)
   }
 }
 
@@ -161,7 +178,7 @@ async function handleUpdate() {
     return
   }
 
-  await run('Guardando proyecto...', async () => {
+  await run('Guardando ejército...', async () => {
     try {
       const data = await projectApi.update(
         props.project.id,
@@ -176,7 +193,7 @@ async function handleUpdate() {
       })
 
       cancelEdit()
-      toast.success(`Proyecto "${data.name}" actualizado`)
+      toast.success(`Ejército "${data.name}" actualizado`)
 
     } catch (e: any) {
       editError.value = e.response?.data?.error ?? 'Error al actualizar'
@@ -185,13 +202,13 @@ async function handleUpdate() {
 }
 
 async function handleDelete() {
-  await run('Eliminando proyecto...', async () => {
+  await run('Eliminando ejército...', async () => {
     try {
       await projectApi.remove(props.project.id)
       projectStore.removeProject(props.project.id)
-      toast.success(`Proyecto "${props.project.name}" eliminado`)
+      toast.success(`Ejército "${props.project.name}" eliminado`)
     } catch {
-      toast.error('Error al eliminar el proyecto')
+      toast.error('Error al eliminar el ejército')
     }
   })
 }

@@ -16,9 +16,11 @@ final class ProjectDTO
         public readonly string $type,
         public readonly string $createdAt,
         public readonly string $updatedAt,
+        public readonly int $unitCount = 0,
+        public readonly int $miniatureCount = 0,
     ) {}
 
-    public static function fromEntity(Project $project): self
+    public static function fromEntity(Project $project, int $unitCount = 0, int $miniatureCount = 0): self
     {
         return new self(
             id:          $project->id()->value(),
@@ -28,6 +30,8 @@ final class ProjectDTO
             type:        $project->type()->value,
             createdAt:   $project->createdAt()->format('c'),
             updatedAt:   $project->updatedAt()->format('c'),
+            unitCount:   $unitCount,
+            miniatureCount: $miniatureCount,
         );
     }
 
@@ -41,6 +45,8 @@ final class ProjectDTO
             'type'        => $this->type,
             'createdAt'   => $this->createdAt,
             'updatedAt'   => $this->updatedAt,
+            'unitCount' => $this->unitCount,
+            'miniatureCount' => $this->miniatureCount,
         ];
     }
 }

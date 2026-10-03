@@ -15,6 +15,21 @@
       </button>
     </header>
 
+    <dl class="mb-5 grid grid-cols-1 gap-3 rounded-xl border bg-white p-4 sm:grid-cols-3">
+      <div>
+        <dt class="text-sm text-gray-600">Unidades</dt>
+        <dd class="mt-1 text-xl font-semibold">{{ totalUnits }}</dd>
+      </div>
+      <div class="sm:border-l sm:pl-4">
+        <dt class="text-sm text-gray-600">Miniaturas en el inventario</dt>
+        <dd class="mt-1 text-xl font-semibold">{{ totalMiniatures }}</dd>
+      </div>
+      <div class="sm:border-l sm:pl-4">
+        <dt class="text-sm text-gray-600">Miniaturas pintadas</dt>
+        <dd class="mt-1 text-xl font-semibold">{{ paintedMiniatures }} <span class="text-sm font-normal text-gray-600">de {{ totalMiniatures }}</span></dd>
+      </div>
+    </dl>
+
     <form v-if="showUnitForm" class="bg-white border rounded-xl p-4 mb-5" @submit.prevent="createUnit">
       <label for="unit-name" class="block text-sm font-medium text-gray-700 mb-1">Nombre de la unidad o personaje</label>
       <div class="flex flex-wrap gap-2">
@@ -47,6 +62,13 @@ import ArmyUnitCard from '@/components/armies/ArmyUnitCard.vue'
 const props = defineProps<{ projectId: string }>()
 const store = useProjectStore()
 const units = computed(() => store.units)
+const totalUnits = computed(() => units.value.length)
+const totalMiniatures = computed(() => units.value.reduce(
+  (sum, unit) => sum + unit.components.reduce((unitSum, component) => unitSum + component.quantityTotal, 0), 0,
+))
+const paintedMiniatures = computed(() => units.value.reduce(
+  (sum, unit) => sum + unit.components.reduce((unitSum, component) => unitSum + component.quantityPainted, 0), 0,
+))
 const showUnitForm = ref(false)
 const unitName = ref('')
 const savingUnit = ref(false)

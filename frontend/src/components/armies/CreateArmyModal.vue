@@ -7,33 +7,27 @@
       <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
 
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-800">Nuevo Proyecto</h3>
+          <h3 class="text-lg font-semibold text-gray-800">Crear ejército</h3>
           <button @click="$emit('close')" class="text-gray-400 hover:text-gray-700">✕</button>
         </div>
 
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+            <label for="army-name" class="block text-sm font-medium text-gray-700 mb-1">Nombre del ejército</label>
             <input
+              id="army-name"
               v-model="form.name"
               type="text"
-              placeholder="Space Marine, Chaos Warrior..."
+              placeholder="Ej. Talabheim, Guardia del Bosque…"
               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de proyecto</label>
-            <select v-model="form.type" class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-              <option value="general">Proyecto general</option>
-              <option value="army">Ejército</option>
-            </select>
-            <p class="text-xs text-gray-500 mt-1">Un ejército también es un proyecto; añade inventario y progreso de pintado desde su detalle.</p>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+            <label for="army-description" class="block text-sm font-medium text-gray-700 mb-1">Descripción <span class="font-normal text-gray-500">(opcional)</span></label>
             <textarea
+              id="army-description"
               v-model="form.description"
-              placeholder="Describe el proyecto..."
+              placeholder="Facción, colección o notas sobre el ejército…"
               rows="3"
               class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
             />
@@ -53,7 +47,7 @@
             :disabled="loading"
             class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition disabled:opacity-50"
           >
-            {{ loading ? 'Creando...' : 'Crear Proyecto' }}
+            {{ loading ? 'Creando…' : 'Crear ejército' }}
           </button>
         </div>
 
@@ -68,7 +62,6 @@ import { useProjectStore } from '@/stores/projectStore'
 import { useToast } from '@/composables/useToast'
 import { projectApi } from '@/api/projectApi'
 
-const props = withDefaults(defineProps<{ initialType?: 'general' | 'army' }>(), { initialType: 'general' })
 const emit = defineEmits<{ close: [] }>()
 
 const projectStore = useProjectStore()
@@ -76,7 +69,7 @@ const toast        = useToast()
 
 const loading = ref(false)
 const error   = ref<string | null>(null)
-const form    = ref<{ name: string; description: string; type: 'general' | 'army' }>({ name: '', description: '', type: props.initialType })
+const form    = ref({ name: '', description: '' })
 
 async function handleCreate() {
   error.value = null
@@ -92,7 +85,7 @@ async function handleCreate() {
     const data = await projectApi.create(
       form.value.name.trim(),
       form.value.description.trim(),
-      form.value.type,
+      'army',
     )
 
     projectStore.addProject({
@@ -100,15 +93,17 @@ async function handleCreate() {
       name:           data.name,
       description:    data.description,
       status:         data.status ?? 'active',
-      type:           data.type ?? form.value.type,
+      type:           'army',
       createdAt:      data.createdAt,
+      unitCount:      data.unitCount ?? 0,
+      miniatureCount: data.miniatureCount ?? 0,
     })
 
-    toast.success(`Proyecto "${data.name}" creado correctamente`)
+    toast.success(`Ejército "${data.name}" creado correctamente`)
     emit('close')
 
   } catch (e: any) {
-    error.value = e.response?.data?.error ?? 'Error al crear el proyecto'
+    error.value = e.response?.data?.error ?? 'Error al crear el ejército'
   } finally {
     loading.value = false
   }

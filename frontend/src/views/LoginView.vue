@@ -5,7 +5,7 @@
       <div class="text-center mb-6">
         <h1 class="text-2xl font-bold text-gray-800">HobbyPlanner</h1>
         <p class="text-gray-500 text-sm mt-2">
-          Gestiona tus proyectos de hobby. Inicia sesión o regístrate para comenzar.
+          Organiza tus ejércitos, miniaturas y sesiones de pintado. Inicia sesión o regístrate para comenzar.
         </p>
       </div>
 
@@ -128,7 +128,7 @@ const name     = ref('')
 async function handleLogin() {
   try {
     await store.login(email.value, password.value)
-    router.push('/projects')
+    router.push('/armies')
   } catch {
     // store.error ya se muestra en el template
   }
@@ -139,7 +139,7 @@ async function handleRegister() {
     await store.register(email.value, password.value, name.value)
     // Auto-login tras registro exitoso
     await store.login(email.value, password.value)
-    router.push('/projects')
+    router.push('/armies')
   } catch {
     // store.error ya se muestra en el template
   }
